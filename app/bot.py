@@ -126,7 +126,7 @@ try:
                                                          ),
                                                  parse_mode="Markdown")
                 time.sleep(1.5)
-            time.sleep(90)
+            time.sleep(45)
         except Exception as e:
             print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
 except Exception as e:
