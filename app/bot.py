@@ -87,7 +87,7 @@ try:
                         attachments = False
 
                     # print(int(int(time.time()) - posts['response']['items'][num]['date']))
-                    if int(int(time.time()) - posts['response']['items'][num]['date']) <= 0:
+                    if int(int(time.time()) - posts['response']['items'][num]['date']) <= 2700:
                         if "{0}_{1}".format(
                             group['response'][0]['id'],
                             posts['response']['items'][num]['id']
@@ -148,7 +148,7 @@ try:
                                                          ),
                                                  parse_mode="Markdown")
                 time.sleep(1.5)
-            time.sleep(15)
+            time.sleep(45)
         except Exception as e:
             print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
 except Exception as e:
