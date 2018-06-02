@@ -46,8 +46,6 @@ try:
                                           })
                     # print(posts.text)
                     posts = posts.json()
-                    # print(posts)
-                    # print(str(int(time.time())))
 
                     # noinspection PyStatementEffect
                     group['response']
