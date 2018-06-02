@@ -51,7 +51,7 @@ try:
                     attachments = False
 
                 print(int(int(time.time()) - posts['response']['items'][num]['date']))
-                if int(int(time.time()) - posts['response']['items'][num]['date']) <= 220:
+                if int(int(time.time()) - posts['response']['items'][num]['date']) <= 320:
                     if attachments:
                         bot.send_message(config.botChannelID,
                                          "[Новая публикация в паблике " + group['response'][0]['name'] +
@@ -89,8 +89,8 @@ try:
                                                  posts['response']['items'][num]['comments']['count']
                                                  ),
                                          parse_mode="Markdown")
-            time.sleep(0.05)
-        time.sleep(120)
+            time.sleep(0.3)
+        time.sleep(180)
 except Exception as e:
     print("An error has occurred: " + str(e) + ".")
 
