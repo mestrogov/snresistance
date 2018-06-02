@@ -20,17 +20,16 @@ def handler(message):
 try:
     while True:
         try:
-            print("sentPosts": + str(sentPosts))
+            print("sentPosts:" + str(sentPosts))
             for groupID in config.vkGroupsIDs:
                 try:
-                    print(2)
                     group = requests.post("https://api.vk.com/method/groups.getById",
                                           data={
                                               "group_ids": groupID,
                                               "access_token": config.vkAccessToken,
                                               "v": "5.78"
                                           })
-                    print(group)
+                    print(group.text)
                     group = group.json()
 
                     posts_count = 10
@@ -44,7 +43,7 @@ try:
                                               "access_token": config.vkAccessToken,
                                               "v": "5.78"
                                           })
-                    print(posts)
+                    print(posts.text)
                     posts = posts.json()
                     # print(posts)
                     # print(str(int(time.time())))
@@ -54,7 +53,6 @@ try:
                     # noinspection PyStatementEffect
                     posts['response']
                 except Exception as e:
-                    print(3)
                     num = 0
                     posts_count = 0
                     posts = None
