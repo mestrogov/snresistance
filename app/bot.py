@@ -10,7 +10,7 @@ import datetime
 
 bot = telebot.TeleBot(config.botToken)
 sentPosts = []
-
+botVKSentErrorMessage = None
 
 """
 @bot.channel_post_handler()
@@ -30,7 +30,7 @@ try:
                                               "access_token": config.vkAccessToken,
                                               "v": "5.78"
                                           })
-                    print(group.text)
+                    # print(group.text)
                     group = group.json()
 
                     posts_count = 10
@@ -44,7 +44,7 @@ try:
                                               "access_token": config.vkAccessToken,
                                               "v": "5.78"
                                           })
-                    print(posts.text)
+                    # print(posts.text)
                     posts = posts.json()
                     # print(posts)
                     # print(str(int(time.time())))
@@ -53,18 +53,26 @@ try:
                     group['response']
                     # noinspection PyStatementEffect
                     posts['response']
+
+                    if botVKSentErrorMessage:
+                        botVKSentErrorMessage = False
                 except Exception as e:
                     num = 0
                     posts_count = 0
                     posts = None
                     group = None
 
-                    bot.send_message(config.botChannelID, "❗*Что-то пошло не так при получении публикаций с помощью "
-                                                          "VK API. Следующий запрос к VK API для получения последних "
-                                                          "постов из сообществ будет произведен через 15 минут. "
-                                                          "В случае повторной неудачи будет опубликовано такое же "
-                                                          "сообщение.*",
-                                     parse_mode="Markdown")
+                    if botVKSentErrorMessage:
+                        pass
+                    else:
+                        bot.send_message(config.botChannelID, "❗*Что-то пошло не так при получении публикаций "
+                                                              "с помощью VK API. Следующий запрос к VK API для "
+                                                              "получения последних постов из сообществ будет "
+                                                              "произведен через 15 минут. В случае решения данной "
+                                                              "проблемы, сообщение просто будет удалено.",
+                                         parse_mode="Markdown", disable_notification=True)
+                        botVKSentErrorMessage = True
+
                     print("VK Exception Handling: An error has occurred: " + str(e) + ". Next request to VK API in "
                                                                                       "15 minutes.")
                     time.sleep(900)
@@ -104,7 +112,7 @@ try:
                                                  "полного отображения."
                                                  "\n\n🕒 _Время публикации: {4}_"
                                                  "\n👁 _Просмотров: {5}_"
-                                                 "\n👍🏻 _Лайков: {6}_"
+                                                 "\n👍 _Лайков: {6}_"
                                                  "\n📎 _Комментариев: {7}_"
                                                  .format(group['response'][0]['screen_name'],
                                                          group['response'][0]['id'],
@@ -125,7 +133,7 @@ try:
                                                  "\n\n\n{3}"
                                                  "\n\n🕒 _Время публикации: {4}_"
                                                  "\n👁 _Просмотров: {5}_"
-                                                 "\n👍🏻 _Лайков: {6}_"
+                                                 "\n👍 _Лайков: {6}_"
                                                  "\n📎 _Комментариев: {7}_"
                                                  .format(group['response'][0]['screen_name'],
                                                          group['response'][0]['id'],
