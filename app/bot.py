@@ -6,6 +6,7 @@ import telebot
 # noinspection PyPackageRequirements,PyUnresolvedReferences
 import config as config
 import time
+import datetime
 
 bot = telebot.TeleBot(config.botToken)
 sentPosts = []
@@ -101,13 +102,17 @@ try:
                                                  "[перейдите на этот пост во ВКонтакте]"
                                                  "(https://vk.com/{0}?w=wall-{1}_{2}) для его корректного и "
                                                  "полного отображения."
-                                                 "\n\n👁 _Просмотров: {4}_"
-                                                 "\n👍🏻 _Лайков: {5}_"
-                                                 "\n📎 _Комментариев: {6}_"
+                                                 "\n\n🕒 _Время публикации: {4}_"
+                                                 "\n👁 _Просмотров: {5}_"
+                                                 "\n👍🏻 _Лайков: {6}_"
+                                                 "\n📎 _Комментариев: {7}_"
                                                  .format(group['response'][0]['screen_name'],
                                                          group['response'][0]['id'],
                                                          posts['response']['items'][num]['id'],
                                                          posts['response']['items'][num]['text'],
+                                                         datetime.datetime.fromtimestamp(
+                                                             int(posts['response']['items'][num]['date'])
+                                                         ).strftime("%H:%M"),
                                                          posts['response']['items'][num]['views']['count'],
                                                          posts['response']['items'][num]['likes']['count'],
                                                          posts['response']['items'][num]['comments']['count']
@@ -115,16 +120,20 @@ try:
                                                  parse_mode="Markdown")
                             else:
                                 bot.send_message(config.botChannelID,
-                                                 "[Новая публикация в паблике " + group['response'][0]['name'] +
-                                                 ".](https://vk.com/{0}?w=wall-{1}_{2})"
+                                                 "[Новая публикация в сообществе " + group['response'][0]['name'] +
+                                                 " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
                                                  "\n\n\n{3}"
-                                                 "\n\n\n👁 _Просмотров: {4}_"
-                                                 "\n👍🏻 _Лайков: {5}_"
-                                                 "\n📎 _Комментариев: {6}_"
+                                                 "\n\n🕒 _Время публикации: {4}_"
+                                                 "\n👁 _Просмотров: {5}_"
+                                                 "\n👍🏻 _Лайков: {6}_"
+                                                 "\n📎 _Комментариев: {7}_"
                                                  .format(group['response'][0]['screen_name'],
                                                          group['response'][0]['id'],
                                                          posts['response']['items'][num]['id'],
                                                          posts['response']['items'][num]['text'],
+                                                         datetime.datetime.fromtimestamp(
+                                                             int(posts['response']['items'][num]['date'])
+                                                         ).strftime("%H:%M"),
                                                          posts['response']['items'][num]['views']['count'],
                                                          posts['response']['items'][num]['likes']['count'],
                                                          posts['response']['items'][num]['comments']['count']
