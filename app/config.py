@@ -2,7 +2,7 @@
 
 botToken = "567318954:AAGW_6A__jFxEq2gBDpVY9C5jrlszuQd3EA"
 
-botChannelID = "-1001311491921"
+botChannelID = "-1001201068931"
 # Основной -- -1001201068931
 # Тестирование -- -1001311491921
 
