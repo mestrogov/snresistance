@@ -1,13 +1,12 @@
 #!/bin/bash
 
-screenName = "paparazziBot"
-sshKeyPath = "/home/citorijawa/.ssh/git_vps"
+screenName="paparazziBot"
+sshKeyPath="/home/citorijawa/.ssh/git_vps"
 
 eval $(ssh-agent -s)
 ssh-add $sshKeyPath
 git pull
 
-screen -X -S $screenName
 rm -rf venv
 
 virtualenv venv
