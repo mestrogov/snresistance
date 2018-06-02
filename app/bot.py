@@ -62,7 +62,9 @@ try:
                     ) in sentPosts:
                         pass
                     else:
-                        sentPosts.extend("{0}_{1}".format(
+                        print("group: " + str(group['response'][0]['id']))
+                        print("posts: " + str(posts['response']['items'][num]['id']))
+                        sentPosts.append("{0}_{1}".format(
                             group['response'][0]['id'],
                             posts['response']['items'][num]['id']
                         ))
