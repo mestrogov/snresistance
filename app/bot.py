@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import requests
+# noinspection PyPackageRequirements
 import telebot
-from app import config as config
+# noinspection PyPackageRequirements,PyUnresolvedReferences
+import config as config
 import time
 
 bot = telebot.TeleBot(config.botToken)
