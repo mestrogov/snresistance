@@ -14,3 +14,4 @@ venv/bin/python -m pip install pyTelegramBotAPI
 venv/bin/python -m pip install requests
 
 screen -dmS $screenName venv/bin/python app/bot.py
+screen -x $screenName
