@@ -8,6 +8,7 @@ import config as config
 import time
 
 bot = telebot.TeleBot(config.botToken)
+sentPosts = []
 
 
 """
@@ -27,7 +28,7 @@ try:
                                   })
             group = group.json()
 
-            posts_count = 25
+            posts_count = 10
             posts = requests.post("https://api.vk.com/method/wall.get",
                                   data={
                                       "owner_id": str("-" + str(groupID)),
@@ -43,6 +44,7 @@ try:
             # print(str(int(time.time())))
 
             for num in range(posts_count):
+                # noinspection PyBroadException
                 try:
                     # noinspection PyStatementEffect
                     posts['response']['items'][num]['attachments'][0]
@@ -50,46 +52,58 @@ try:
                 except:
                     attachments = False
 
-                print(int(int(time.time()) - posts['response']['items'][num]['date']))
-                if int(int(time.time()) - posts['response']['items'][num]['date']) <= 320:
-                    if attachments:
-                        bot.send_message(config.botChannelID,
-                                         "[Новая публикация в паблике " + group['response'][0]['name'] +
-                                         ".](https://vk.com/{0}?w=wall-{1}_{2})"
-                                         "\n\n\n*{3}*"
-                                         "\n\n\n❗️К данной публикации что-то прикреплено, [перейдите на этот пост во "
-                                         "ВКонтакте](https://vk.com/{0}?w=wall-{1}_{2}) для его "
-                                         "корректного и полного отображения."
-                                         "\n\n👁 _Просмотров: {4}_"
-                                         "\n👍🏻 _Лайков: {5}_"
-                                         "\n📎 _Комментариев: {6}_"
-                                         .format(group['response'][0]['screen_name'],
-                                                 group['response'][0]['id'],
-                                                 posts['response']['items'][num]['id'],
-                                                 posts['response']['items'][num]['text'],
-                                                 posts['response']['items'][num]['views']['count'],
-                                                 posts['response']['items'][num]['likes']['count'],
-                                                 posts['response']['items'][num]['comments']['count']
-                                                 ),
-                                         parse_mode="Markdown")
+                # print(int(int(time.time()) - posts['response']['items'][num]['date']))
+                if int(int(time.time()) - posts['response']['items'][num]['date']) <= 480:
+                    print(sentPosts)
+                    if "{0}_{1}".format(
+                        group['response'][0]['id'],
+                        posts['response']['items'][num]['id']
+                    ) in sentPosts:
+                        pass
                     else:
-                        bot.send_message(config.botChannelID,
-                                         "[Новая публикация в паблике " + group['response'][0]['name'] +
-                                         ".](https://vk.com/{0}?w=wall-{1}_{2})"
-                                         "\n\n\n*{3}*"
-                                         "\n\n\n👁 _Просмотров: {4}_"
-                                         "\n👍🏻 _Лайков: {5}_"
-                                         "\n📎 _Комментариев: {6}_"
-                                         .format(group['response'][0]['screen_name'],
-                                                 group['response'][0]['id'],
-                                                 posts['response']['items'][num]['id'],
-                                                 posts['response']['items'][num]['text'],
-                                                 posts['response']['items'][num]['views']['count'],
-                                                 posts['response']['items'][num]['likes']['count'],
-                                                 posts['response']['items'][num]['comments']['count']
-                                                 ),
-                                         parse_mode="Markdown")
-            time.sleep(0.3)
+                        sentPosts.extend("{0}_{1}".format(
+                            group['response'][0]['id'],
+                            posts['response']['items'][num]['id']
+                        ))
+                        print(sentPosts)
+                        if attachments:
+                            bot.send_message(config.botChannelID,
+                                             "[Новая публикация в паблике " + group['response'][0]['name'] +
+                                             ".](https://vk.com/{0}?w=wall-{1}_{2})"
+                                             "\n\n\n*{3}*"
+                                             "\n\n\n❗️К данной публикации что-то прикреплено, [перейдите на этот пост во "
+                                             "ВКонтакте](https://vk.com/{0}?w=wall-{1}_{2}) для его "
+                                             "корректного и полного отображения."
+                                             "\n\n👁 _Просмотров: {4}_"
+                                             "\n👍🏻 _Лайков: {5}_"
+                                             "\n📎 _Комментариев: {6}_"
+                                             .format(group['response'][0]['screen_name'],
+                                                     group['response'][0]['id'],
+                                                     posts['response']['items'][num]['id'],
+                                                     posts['response']['items'][num]['text'],
+                                                     posts['response']['items'][num]['views']['count'],
+                                                     posts['response']['items'][num]['likes']['count'],
+                                                     posts['response']['items'][num]['comments']['count']
+                                                     ),
+                                             parse_mode="Markdown")
+                        else:
+                            bot.send_message(config.botChannelID,
+                                             "[Новая публикация в паблике " + group['response'][0]['name'] +
+                                             ".](https://vk.com/{0}?w=wall-{1}_{2})"
+                                             "\n\n\n*{3}*"
+                                             "\n\n\n👁 _Просмотров: {4}_"
+                                             "\n👍🏻 _Лайков: {5}_"
+                                             "\n📎 _Комментариев: {6}_"
+                                             .format(group['response'][0]['screen_name'],
+                                                     group['response'][0]['id'],
+                                                     posts['response']['items'][num]['id'],
+                                                     posts['response']['items'][num]['text'],
+                                                     posts['response']['items'][num]['views']['count'],
+                                                     posts['response']['items'][num]['likes']['count'],
+                                                     posts['response']['items'][num]['comments']['count']
+                                                     ),
+                                             parse_mode="Markdown")
+            time.sleep(0.5)
         time.sleep(180)
 except Exception as e:
     print("An error has occurred: " + str(e) + ".")
