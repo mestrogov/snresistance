@@ -20,15 +20,17 @@ def handler(message):
 try:
     while True:
         try:
-            print("while True: " + str(sentPosts))
+            print("sentPosts": + str(sentPosts))
             for groupID in config.vkGroupsIDs:
                 try:
+                    print(2)
                     group = requests.post("https://api.vk.com/method/groups.getById",
                                           data={
                                               "group_ids": groupID,
                                               "access_token": config.vkAccessToken,
                                               "v": "5.78"
                                           })
+                    print(group)
                     group = group.json()
 
                     posts_count = 10
@@ -42,10 +44,17 @@ try:
                                               "access_token": config.vkAccessToken,
                                               "v": "5.78"
                                           })
+                    print(posts)
                     posts = posts.json()
                     # print(posts)
                     # print(str(int(time.time())))
+
+                    # noinspection PyStatementEffect
+                    group['response']
+                    # noinspection PyStatementEffect
+                    posts['response']
                 except Exception as e:
+                    print(3)
                     num = 0
                     posts_count = 0
                     posts = None
@@ -58,8 +67,8 @@ try:
                                                           "В случае повторной неудачи будет опубликовано такое же "
                                                           "сообщение.*",
                                      parse_mode="Markdown")
-                    print("VK Exception Handling: An error has occurred: " + str(e) + ". Next request to VK API in"
-                                                                                      "10 minutes.")
+                    print("VK Exception Handling: An error has occurred: " + str(e) + ". Next request to VK API in "
+                                                                                      "15 minutes.")
                     time.sleep(900)
 
                 for num in range(posts_count):
@@ -73,7 +82,6 @@ try:
 
                     # print(int(int(time.time()) - posts['response']['items'][num]['date']))
                     if int(int(time.time()) - posts['response']['items'][num]['date']) <= 2700:
-                        print("if int(): " + str(sentPosts))
                         if "{0}_{1}".format(
                             group['response'][0]['id'],
                             posts['response']['items'][num]['id']
@@ -86,7 +94,7 @@ try:
                                 group['response'][0]['id'],
                                 posts['response']['items'][num]['id']
                             ))
-                            print("if sentPosts: " + str(sentPosts))
+                            print("sentPosts.append: " + str(sentPosts))
                             if attachments:
                                 bot.send_message(config.botChannelID,
                                                  "[Новая публикация в сообществе " + group['response'][0]['name'] +
