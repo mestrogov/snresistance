@@ -19,6 +19,7 @@ def handler(message):
 
 try:
     while True:
+        print("while True: " + str(sentPosts))
         for groupID in config.vkGroupsIDs:
             group = requests.post("https://api.vk.com/method/groups.getById",
                                   data={
@@ -54,7 +55,7 @@ try:
 
                 # print(int(int(time.time()) - posts['response']['items'][num]['date']))
                 if int(int(time.time()) - posts['response']['items'][num]['date']) <= 480:
-                    print(sentPosts)
+                    print("if int(): " + str(sentPosts))
                     if "{0}_{1}".format(
                         group['response'][0]['id'],
                         posts['response']['items'][num]['id']
@@ -65,7 +66,7 @@ try:
                             group['response'][0]['id'],
                             posts['response']['items'][num]['id']
                         ))
-                        print(sentPosts)
+                        print("if sentPosts: " + str(sentPosts))
                         if attachments:
                             bot.send_message(config.botChannelID,
                                              "[Новая публикация в паблике " + group['response'][0]['name'] +
