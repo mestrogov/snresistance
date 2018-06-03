@@ -149,7 +149,7 @@ def post_polling():
                                                          ),
                                                  parse_mode="Markdown")
                 time.sleep(1.25)
-            time.sleep(10)
+            time.sleep(600)
         except Exception as e:
             print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
 
