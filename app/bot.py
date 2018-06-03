@@ -15,11 +15,11 @@ botVKSentErrorMessage = None
 sentPosts = []
 
 
-"""
 @bot.channel_post_handler()
 def handler(message):
-    print(message)
-"""
+    print("----------")
+    print("Channel Name: " + str(message.chat.title))
+    print("Channel ID: " + str(message.chat.id))
 
 
 # noinspection PyUnboundLocalVariable,PyPep8Naming,PyShadowingNames
