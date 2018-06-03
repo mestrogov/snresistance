@@ -22,7 +22,6 @@ def handler(message):
     print("Channel ID: " + str(message.chat.id))
 
 
-# noinspection PyUnboundLocalVariable,PyPep8Naming,PyShadowingNames
 def post_polling():
     global bot
     global botVKSentErrorMessage
@@ -32,31 +31,31 @@ def post_polling():
             print("sentPosts:" + str(sentPosts))
             for groupID in config.vkGroupsIDs:
                 try:
-                    group = requests.post("https://api.vk.com/method/groups.getById",
-                                          data={
-                                              "group_ids": groupID,
-                                              "access_token": config.vkAccessToken,
-                                              "v": "5.78"
-                                          })
-                    # print(group.text)
-                    group = group.json()
+                    print(len(config.vkAccessTokens))
 
                     posts_count = 1
-                    posts = requests.post("https://api.vk.com/method/wall.get",
-                                          data={
-                                              "owner_id": str("-" + str(groupID)),
-                                              "offset": 1,
-                                              "count": posts_count,
-                                              "filter": "all",
-                                              "extended": 1,
-                                              "access_token": config.vkAccessToken,
-                                              "v": "5.78"
-                                          })
+                    for pnum in range(len(config.vkAccessTokens)):
+                        posts = requests.post("https://api.vk.com/method/wall.get",
+                                              data={
+                                                  "owner_id": str("-" + str(groupID)),
+                                                  "offset": 1,
+                                                  "count": posts_count,
+                                                  "filter": "all",
+                                                  "extended": 1,
+                                                  "access_token": config.vkAccessTokens[pnum],
+                                                  "v": "5.78"
+                                              })
+
+                        try:
+                            posts.json()['error']
+                        except:
+                            print("wall.get, using specified access_token: " + str(config.vkAccessTokens[pnum]))
+                            break
+
                     # print(posts.text)
+                    # noinspection PyUnboundLocalVariable
                     posts = posts.json()
 
-                    # noinspection PyStatementEffect
-                    group['response']
                     # noinspection PyStatementEffect
                     posts['response']
 
@@ -70,14 +69,15 @@ def post_polling():
                                                               "с помощью VK API. Следующий запрос к VK API для "
                                                               "получения последних постов из сообществ будет "
                                                               "произведен через 15 минут. В случае решения данной "
-                                                              "проблемы, сообщение просто будет удалено.",
+                                                              "проблемы, сообщение просто будет удалено.*",
                                          parse_mode="Markdown", disable_notification=True)
                         botVKSentErrorMessage = True
 
                     print("VK Exception Handling: An error has occurred: " + str(e) + ". Next request to VK API in "
                                                                                       "15 minutes.")
-                    time.sleep(900)
+                    time.sleep(10)
 
+                # noinspection PyUnboundLocalVariable
                 for num in range(posts_count):
                     # noinspection PyBroadException
                     try:
@@ -90,25 +90,22 @@ def post_polling():
                     # print(int(int(time.time()) - posts['response']['items'][num]['date']))
                     if int(int(time.time()) - posts['response']['items'][num]['date']) <= 100000:
                         if "{0}_{1}".format(
-                            group['response'][0]['id'],
+                            posts['response']['groups'][0]['id'],
                             posts['response']['items'][num]['id']
                         ) in sentPosts:
                             pass
                         else:
-                            print("group: " + str(group['response'][0]['id']))
+                            print("group: " + str(posts['response']['groups'][0]['id']))
                             print("posts: " + str(posts['response']['items'][num]['id']))
                             sentPosts.append("{0}_{1}".format(
-                                group['response'][0]['id'],
+                                posts['response']['groups'][0]['id'],
                                 posts['response']['items'][num]['id']
                             ))
                             print("sentPosts.append: " + str(sentPosts))
                             if attachments:
-                                markup = types.InlineKeyboardMarkup()
-                                markup = markup.row(types.InlineKeyboardButton(text="👍", callback_data="test"),
-                                                    types.InlineKeyboardButton(text="👎", callback_data="test"))
                                 bot.send_message(config.botChannelID,
-                                                 "[Новая публикация в сообществе " + group['response'][0]['name'] +
-                                                 " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
+                                                 "[Новая публикация в сообществе " + posts['response']['groups'][0]
+                                                 ['name'] + " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
                                                  "\n\n\n{3}"
                                                  "\n\n\n❗️К данной публикации что-то прикреплено, "
                                                  "[перейдите на этот пост во ВКонтакте]"
@@ -118,29 +115,8 @@ def post_polling():
                                                  "\n👁 _Просмотров: {5}_"
                                                  "\n👍 _Лайков: {6}_"
                                                  "\n📎 _Комментариев: {7}_"
-                                                 .format(group['response'][0]['screen_name'],
-                                                         group['response'][0]['id'],
-                                                         posts['response']['items'][num]['id'],
-                                                         posts['response']['items'][num]['text'],
-                                                         datetime.datetime.fromtimestamp(
-                                                             int(posts['response']['items'][num]['date'])
-                                                         ).strftime("%H:%M"),
-                                                         posts['response']['items'][num]['views']['count'],
-                                                         posts['response']['items'][num]['likes']['count'],
-                                                         posts['response']['items'][num]['comments']['count']
-                                                         ),
-                                                 parse_mode="Markdown", reply_markup=markup)
-                            else:
-                                bot.send_message(config.botChannelID,
-                                                 "[Новая публикация в сообществе " + group['response'][0]['name'] +
-                                                 " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
-                                                 "\n\n\n{3}"
-                                                 "\n\n🕒 _Время публикации: {4}_"
-                                                 "\n👁 _Просмотров: {5}_"
-                                                 "\n👍 _Лайков: {6}_"
-                                                 "\n📎 _Комментариев: {7}_"
-                                                 .format(group['response'][0]['screen_name'],
-                                                         group['response'][0]['id'],
+                                                 .format(posts['response']['groups'][0]['name'],
+                                                         posts['response']['groups'][0]['id'],
                                                          posts['response']['items'][num]['id'],
                                                          posts['response']['items'][num]['text'],
                                                          datetime.datetime.fromtimestamp(
@@ -151,8 +127,29 @@ def post_polling():
                                                          posts['response']['items'][num]['comments']['count']
                                                          ),
                                                  parse_mode="Markdown")
-                time.sleep(1.5)
-            time.sleep(15)
+                            else:
+                                bot.send_message(config.botChannelID,
+                                                 "[Новая публикация в сообществе " + posts['response']['groups'][0]
+                                                 ['name'] + " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
+                                                 "\n\n\n{3}"
+                                                 "\n\n🕒 _Время публикации: {4}_"
+                                                 "\n👁 _Просмотров: {5}_"
+                                                 "\n👍 _Лайков: {6}_"
+                                                 "\n📎 _Комментариев: {7}_"
+                                                 .format(posts['response']['groups'][0]['name'],
+                                                         posts['response']['groups'][0]['id'],
+                                                         posts['response']['items'][num]['id'],
+                                                         posts['response']['items'][num]['text'],
+                                                         datetime.datetime.fromtimestamp(
+                                                             int(posts['response']['items'][num]['date'])
+                                                         ).strftime("%H:%M"),
+                                                         posts['response']['items'][num]['views']['count'],
+                                                         posts['response']['items'][num]['likes']['count'],
+                                                         posts['response']['items'][num]['comments']['count']
+                                                         ),
+                                                 parse_mode="Markdown")
+                time.sleep(1.25)
+            time.sleep(10)
         except Exception as e:
             print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
 
