@@ -3,65 +3,65 @@
 import requests
 # noinspection PyPackageRequirements
 import telebot
+from telebot import types
 # noinspection PyPackageRequirements,PyUnresolvedReferences
 import config as config
 import time
 import datetime
+import threading
 
 bot = telebot.TeleBot(config.botToken)
-sentPosts = []
 botVKSentErrorMessage = None
+sentPosts = []
 
-"""
+
 @bot.channel_post_handler()
 def handler(message):
-    print(message)
-"""
+    print("----------")
+    print("Channel Name: " + str(message.chat.title))
+    print("Channel ID: " + str(message.chat.id))
 
-try:
+
+def post_polling():
+    global bot
+    global botVKSentErrorMessage
+    global sentPosts
     while True:
         try:
             print("sentPosts:" + str(sentPosts))
             for groupID in config.vkGroupsIDs:
                 try:
-                    group = requests.post("https://api.vk.com/method/groups.getById",
-                                          data={
-                                              "group_ids": groupID,
-                                              "access_token": config.vkAccessToken,
-                                              "v": "5.78"
-                                          })
-                    # print(group.text)
-                    group = group.json()
+                    print(len(config.vkAccessTokens))
 
                     posts_count = 10
-                    posts = requests.post("https://api.vk.com/method/wall.get",
-                                          data={
-                                              "owner_id": str("-" + str(groupID)),
-                                              "offset": 1,
-                                              "count": posts_count,
-                                              "filter": "all",
-                                              "extended": 1,
-                                              "access_token": config.vkAccessToken,
-                                              "v": "5.78"
-                                          })
-                    # print(posts.text)
-                    posts = posts.json()
-                    # print(posts)
-                    # print(str(int(time.time())))
+                    for pnum in range(len(config.vkAccessTokens)):
+                        posts = requests.post("https://api.vk.com/method/wall.get",
+                                              data={
+                                                  "owner_id": str("-" + str(groupID)),
+                                                  "offset": 1,
+                                                  "count": posts_count,
+                                                  "filter": "all",
+                                                  "extended": 1,
+                                                  "access_token": config.vkAccessTokens[pnum],
+                                                  "v": "5.78"
+                                              })
 
-                    # noinspection PyStatementEffect
-                    group['response']
+                        try:
+                            posts.json()['error']
+                        except:
+                            print("wall.get, using specified access_token: " + str(config.vkAccessTokens[pnum]))
+                            break
+
+                    # print(posts.text)
+                    # noinspection PyUnboundLocalVariable
+                    posts = posts.json()
+
                     # noinspection PyStatementEffect
                     posts['response']
 
                     if botVKSentErrorMessage:
                         botVKSentErrorMessage = False
                 except Exception as e:
-                    num = 0
-                    posts_count = 0
-                    posts = None
-                    group = None
-
                     if botVKSentErrorMessage:
                         pass
                     else:
@@ -69,7 +69,7 @@ try:
                                                               "с помощью VK API. Следующий запрос к VK API для "
                                                               "получения последних постов из сообществ будет "
                                                               "произведен через 15 минут. В случае решения данной "
-                                                              "проблемы, сообщение просто будет удалено.",
+                                                              "проблемы, сообщение просто будет удалено.*",
                                          parse_mode="Markdown", disable_notification=True)
                         botVKSentErrorMessage = True
 
@@ -77,6 +77,7 @@ try:
                                                                                       "15 minutes.")
                     time.sleep(900)
 
+                # noinspection PyUnboundLocalVariable
                 for num in range(posts_count):
                     # noinspection PyBroadException
                     try:
@@ -89,22 +90,22 @@ try:
                     # print(int(int(time.time()) - posts['response']['items'][num]['date']))
                     if int(int(time.time()) - posts['response']['items'][num]['date']) <= 2700:
                         if "{0}_{1}".format(
-                            group['response'][0]['id'],
+                            posts['response']['groups'][0]['id'],
                             posts['response']['items'][num]['id']
                         ) in sentPosts:
                             pass
                         else:
-                            print("group: " + str(group['response'][0]['id']))
+                            print("group: " + str(posts['response']['groups'][0]['id']))
                             print("posts: " + str(posts['response']['items'][num]['id']))
                             sentPosts.append("{0}_{1}".format(
-                                group['response'][0]['id'],
+                                posts['response']['groups'][0]['id'],
                                 posts['response']['items'][num]['id']
                             ))
                             print("sentPosts.append: " + str(sentPosts))
                             if attachments:
                                 bot.send_message(config.botChannelID,
-                                                 "[Новая публикация в сообществе " + group['response'][0]['name'] +
-                                                 " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
+                                                 "[Новая публикация в сообществе " + posts['response']['groups'][0]
+                                                 ['name'] + " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
                                                  "\n\n\n{3}"
                                                  "\n\n\n❗️К данной публикации что-то прикреплено, "
                                                  "[перейдите на этот пост во ВКонтакте]"
@@ -114,8 +115,8 @@ try:
                                                  "\n👁 _Просмотров: {5}_"
                                                  "\n👍 _Лайков: {6}_"
                                                  "\n📎 _Комментариев: {7}_"
-                                                 .format(group['response'][0]['screen_name'],
-                                                         group['response'][0]['id'],
+                                                 .format(posts['response']['groups'][0]['name'],
+                                                         posts['response']['groups'][0]['id'],
                                                          posts['response']['items'][num]['id'],
                                                          posts['response']['items'][num]['text'],
                                                          datetime.datetime.fromtimestamp(
@@ -128,15 +129,15 @@ try:
                                                  parse_mode="Markdown")
                             else:
                                 bot.send_message(config.botChannelID,
-                                                 "[Новая публикация в сообществе " + group['response'][0]['name'] +
-                                                 " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
+                                                 "[Новая публикация в сообществе " + posts['response']['groups'][0]
+                                                 ['name'] + " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
                                                  "\n\n\n{3}"
                                                  "\n\n🕒 _Время публикации: {4}_"
                                                  "\n👁 _Просмотров: {5}_"
                                                  "\n👍 _Лайков: {6}_"
                                                  "\n📎 _Комментариев: {7}_"
-                                                 .format(group['response'][0]['screen_name'],
-                                                         group['response'][0]['id'],
+                                                 .format(posts['response']['groups'][0]['name'],
+                                                         posts['response']['groups'][0]['id'],
                                                          posts['response']['items'][num]['id'],
                                                          posts['response']['items'][num]['text'],
                                                          datetime.datetime.fromtimestamp(
@@ -147,12 +148,18 @@ try:
                                                          posts['response']['items'][num]['comments']['count']
                                                          ),
                                                  parse_mode="Markdown")
-                time.sleep(1.5)
-            time.sleep(45)
+                time.sleep(1.25)
+            time.sleep(600)
         except Exception as e:
             print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
-except Exception as e:
-    print("While True Exception Handling: An error has occurred: " + str(e) + ".")
 
 
-bot.polling(1)
+if __name__ == "__main__":
+    post_polling = threading.Thread(target=post_polling())
+    bot_polling = threading.Thread(target=bot.polling(none_stop=True))
+
+    post_polling.daemon = True
+    bot_polling.daemon = True
+
+    post_polling.start()
+    bot_polling.start()
