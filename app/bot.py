@@ -3,14 +3,17 @@
 import requests
 # noinspection PyPackageRequirements
 import telebot
+from telebot import types
 # noinspection PyPackageRequirements,PyUnresolvedReferences
 import config as config
 import time
 import datetime
+import threading
 
 bot = telebot.TeleBot(config.botToken)
-sentPosts = []
 botVKSentErrorMessage = None
+sentPosts = []
+
 
 """
 @bot.channel_post_handler()
@@ -18,7 +21,12 @@ def handler(message):
     print(message)
 """
 
-try:
+
+# noinspection PyUnboundLocalVariable,PyPep8Naming,PyShadowingNames
+def post_polling():
+    global bot
+    global botVKSentErrorMessage
+    global sentPosts
     while True:
         try:
             print("sentPosts:" + str(sentPosts))
@@ -33,7 +41,7 @@ try:
                     # print(group.text)
                     group = group.json()
 
-                    posts_count = 10
+                    posts_count = 1
                     posts = requests.post("https://api.vk.com/method/wall.get",
                                           data={
                                               "owner_id": str("-" + str(groupID)),
@@ -55,11 +63,6 @@ try:
                     if botVKSentErrorMessage:
                         botVKSentErrorMessage = False
                 except Exception as e:
-                    num = 0
-                    posts_count = 0
-                    posts = None
-                    group = None
-
                     if botVKSentErrorMessage:
                         pass
                     else:
@@ -85,7 +88,7 @@ try:
                         attachments = False
 
                     # print(int(int(time.time()) - posts['response']['items'][num]['date']))
-                    if int(int(time.time()) - posts['response']['items'][num]['date']) <= 0:
+                    if int(int(time.time()) - posts['response']['items'][num]['date']) <= 100000:
                         if "{0}_{1}".format(
                             group['response'][0]['id'],
                             posts['response']['items'][num]['id']
@@ -100,6 +103,9 @@ try:
                             ))
                             print("sentPosts.append: " + str(sentPosts))
                             if attachments:
+                                markup = types.InlineKeyboardMarkup()
+                                markup = markup.row(types.InlineKeyboardButton(text="👍", callback_data="test"),
+                                                    types.InlineKeyboardButton(text="👎", callback_data="test"))
                                 bot.send_message(config.botChannelID,
                                                  "[Новая публикация в сообществе " + group['response'][0]['name'] +
                                                  " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
@@ -123,7 +129,7 @@ try:
                                                          posts['response']['items'][num]['likes']['count'],
                                                          posts['response']['items'][num]['comments']['count']
                                                          ),
-                                                 parse_mode="Markdown")
+                                                 parse_mode="Markdown", reply_markup=markup)
                             else:
                                 bot.send_message(config.botChannelID,
                                                  "[Новая публикация в сообществе " + group['response'][0]['name'] +
@@ -149,8 +155,14 @@ try:
             time.sleep(15)
         except Exception as e:
             print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
-except Exception as e:
-    print("While True Exception Handling: An error has occurred: " + str(e) + ".")
 
 
-bot.polling(1)
+if __name__ == "__main__":
+    post_polling = threading.Thread(target=post_polling())
+    bot_polling = threading.Thread(target=bot.polling(none_stop=True))
+
+    post_polling.daemon = True
+    bot_polling.daemon = True
+
+    post_polling.start()
+    bot_polling.start()
