@@ -115,7 +115,7 @@ def post_polling():
                                                  "\n👁 _Просмотров: {5}_"
                                                  "\n👍 _Лайков: {6}_"
                                                  "\n📎 _Комментариев: {7}_"
-                                                 .format(posts['response']['groups'][0]['name'],
+                                                 .format(posts['response']['groups'][0]['screen_name'],
                                                          posts['response']['groups'][0]['id'],
                                                          posts['response']['items'][num]['id'],
                                                          posts['response']['items'][num]['text'],
@@ -136,7 +136,7 @@ def post_polling():
                                                  "\n👁 _Просмотров: {5}_"
                                                  "\n👍 _Лайков: {6}_"
                                                  "\n📎 _Комментариев: {7}_"
-                                                 .format(posts['response']['groups'][0]['name'],
+                                                 .format(posts['response']['groups'][0]['screen_name'],
                                                          posts['response']['groups'][0]['id'],
                                                          posts['response']['items'][num]['id'],
                                                          posts['response']['items'][num]['text'],
