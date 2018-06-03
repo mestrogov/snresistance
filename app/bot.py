@@ -113,6 +113,16 @@ def post_polling():
                             except:
                                 pass
 
+                            try:
+                                post_text_stripping = post_text
+                                text = {tag.strip("#") for tag in post_text_stripping.split() if tag.startswith("#")}
+                                text = list(text)
+                                for it in text:
+                                    _t = "#" + it
+                                    post_text = post_text.replace(_t, "")
+                            except:
+                                pass
+
                             if attachments:
                                 bot.send_message(config.botChannelID,
                                                  "[Новая публикация в сообществе " + posts['response']['groups'][0]
