@@ -102,6 +102,17 @@ def post_polling():
                                 posts['response']['items'][num]['id']
                             ))
                             print("sentPosts.append: " + str(sentPosts))
+
+                            post_text = posts['response']['items'][num]['text']
+                            try:
+                                post_text_part = post_text.partition('[')[-1].rpartition(']')[0]
+                                post_text_splitted = post_text_part.split("|")
+                                post_text_md = "[" + str(post_text_splitted[1]) + "]" + \
+                                               "(https://vk.com/" + str(post_text_splitted[0]) + ")"
+                                post_text = post_text.replace("[" + post_text_part + "]", post_text_md)
+                            except:
+                                pass
+
                             if attachments:
                                 bot.send_message(config.botChannelID,
                                                  "[Новая публикация в сообществе " + posts['response']['groups'][0]
@@ -118,7 +129,7 @@ def post_polling():
                                                  .format(posts['response']['groups'][0]['screen_name'],
                                                          posts['response']['groups'][0]['id'],
                                                          posts['response']['items'][num]['id'],
-                                                         posts['response']['items'][num]['text'],
+                                                         post_text,
                                                          datetime.datetime.fromtimestamp(
                                                              int(posts['response']['items'][num]['date'])
                                                          ).strftime("%H:%M"),
@@ -139,7 +150,7 @@ def post_polling():
                                                  .format(posts['response']['groups'][0]['screen_name'],
                                                          posts['response']['groups'][0]['id'],
                                                          posts['response']['items'][num]['id'],
-                                                         posts['response']['items'][num]['text'],
+                                                         post_text,
                                                          datetime.datetime.fromtimestamp(
                                                              int(posts['response']['items'][num]['date'])
                                                          ).strftime("%H:%M"),
