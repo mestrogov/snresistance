@@ -11,6 +11,7 @@ import datetime
 import threading
 
 bot = telebot.TeleBot(config.botToken)
+print(bot.get_me())
 botVKSentErrorMessage = None
 sentPosts = []
 
@@ -22,6 +23,39 @@ def handler(message):
     print("Channel ID: " + str(message.chat.id))
 
 
+@bot.message_handler(commands=['start'])
+def start_handler(message):
+    print(message.from_user)
+
+    if "ru" in message.from_user.language_code:
+        pass
+    else:
+        bot.send_message(message.from_user.id,
+                         "❗*Unfortunately, the bot doesn't speak your language. So if you are not able to understand "
+                         "the text that is written below, use an online translator such as Google Translate.*",
+                         parse_mode="Markdown")
+    bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
+
+    markup = types.InlineKeyboardMarkup()
+    markup.row(
+        types.InlineKeyboardButton("TEST", callback_data="test"),
+        types.InlineKeyboardButton("TEST1", callback_data="test1")
+        )
+    bot.send_message(message.from_user.id, "OK!", reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_inline(call):
+    if call.message:
+        if call.data == "test":
+            print("TEST")
+            start_handler(message=call)
+        elif call.data == "test1":
+            print("TEST1")
+        bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
+
+
+"""
 def post_polling():
     global bot
     global botVKSentErrorMessage
@@ -173,14 +207,14 @@ def post_polling():
             time.sleep(600)
         except Exception as e:
             print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
-
+"""
 
 if __name__ == "__main__":
-    post_polling = threading.Thread(target=post_polling())
+    # post_polling = threading.Thread(target=post_polling())
     bot_polling = threading.Thread(target=bot.polling(none_stop=True))
 
-    post_polling.daemon = True
+    # post_polling.daemon = True
     bot_polling.daemon = True
 
-    post_polling.start()
+    # post_polling.start()
     bot_polling.start()
