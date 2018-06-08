@@ -3,6 +3,7 @@
 import requests
 # noinspection PyPackageRequirements
 import telebot
+# noinspection PyPackageRequirements
 from telebot import types
 # noinspection PyPackageRequirements,PyUnresolvedReferences
 import config as config
@@ -25,13 +26,12 @@ def handler(message):
 
 @bot.message_handler(commands=['start'])
 def start_handler(message):
-    print(message.from_user)
 
     if "ru" in message.from_user.language_code:
         pass
     else:
         bot.send_message(message.from_user.id,
-                         "❗*Unfortunately, the bot doesn't speak your language. So if you are not able to understand "
+                         "❗ *Unfortunately, the bot doesn't speak your language. So if you are not able to understand "
                          "the text that is written below, use an online translator such as Google Translate.*",
                          parse_mode="Markdown")
     bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
