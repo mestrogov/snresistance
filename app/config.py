@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 
-botToken = "617217526:AAHGu7g0z2flW4a6ulGpIdnJOvkZ3rhKAlA"
+botToken = "575841584:AAFtrQNHO9JHUZJGobWh6-tI0sCxSSY20m4"
 # paparazziBarbosBot -- 601202629:AAGre0DlwhcM-NHqB1Aht6T6V6OJuuZR7kk
 # paparazziBRBot -- 617217526:AAHGu7g0z2flW4a6ulGpIdnJOvkZ3rhKAlA
 
 botChannelID = "-1001217496073"
 # Основной -- -1001338744519
 # Тестирование -- -1001217496073
+
+# Database Credentials
+databaseHost = "192.168.90.100"
+databasePort = 32768
+databaseName = "SNResistance"
+databaseUsername = "postgres"
+databasePassword = ""
 
 vkAccessTokens = [
     "bd2ef5deebe23c893fa585a43f2bf3b39956bed79efb50654857c4efb3daa264c26069acffc29ad597395",

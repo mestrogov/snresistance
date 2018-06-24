@@ -10,11 +10,72 @@ import config as config
 import time
 import datetime
 import threading
+import asyncio
+import asyncpg
+import ast
+
+
+# noinspection PyPep8Naming
+class db:
+    @staticmethod
+    async def connection():
+        try:
+            postgresql_connection = await asyncpg.connect(host=config.databaseHost,
+                                                          database=config.databaseName,
+                                                          user=config.databaseUsername,
+                                                          port=config.databasePort)
+
+            print('The connection to PostgreSQL can be established successfully.')
+
+            await postgresql_connection.close()
+        except Exception as e:
+            print("An unexpected error was occurred while calling the method: " +
+                  str(type(e).__name__) + ': ' + str(e) + ".")
+
+    @classmethod
+    async def execute(cls, *args):
+        print(*args)
+        try:
+            postgresql_connection = await asyncpg.connect(host=config.databaseHost,
+                                                          database=config.databaseName,
+                                                          user=config.databaseUsername,
+                                                          port=config.databasePort)
+
+            await postgresql_connection.execute(*args)
+            await postgresql_connection.close()
+        except Exception as e:
+            print("An unexpected error was occurred while calling the method: " +
+                  str(type(e).__name__) + ': ' + str(e) + ".")
+
+    @classmethod
+    async def fetch(cls, *args):
+        try:
+            postgresql_connection = await asyncpg.connect(host=config.databaseHost,
+                                                          database=config.databaseName,
+                                                          user=config.databaseUsername,
+                                                          port=config.databasePort)
+
+            result = await postgresql_connection.fetch(*args)
+            await postgresql_connection.close()
+
+            # The result can be parsed by using: result[0]['COLUMN']
+            return result[0]
+        except Exception as e:
+            print("An unexpected error was occurred while calling the method: " +
+                  str(type(e).__name__) + ': ' + str(e) + ".")
+
+
+asyncio.get_event_loop().run_until_complete(db.connection())
+
 
 bot = telebot.TeleBot(config.botToken)
 print(bot.get_me())
+
 botVKSentErrorMessage = None
 sentPosts = []
+
+aloop = asyncio.new_event_loop()
+asyncio.set_event_loop(aloop)
 
 
 @bot.channel_post_handler()
@@ -24,35 +85,106 @@ def handler(message):
     print("Channel ID: " + str(message.chat.id))
 
 
-@bot.message_handler(commands=['start'])
-def start_handler(message):
-
-    if "ru" in message.from_user.language_code:
-        pass
-    else:
-        bot.send_message(message.from_user.id,
-                         "❗ *Unfortunately, the bot doesn't speak your language. So if you are not able to understand "
-                         "the text that is written below, use an online translator such as Google Translate.*",
-                         parse_mode="Markdown")
-    bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
-
-    markup = types.InlineKeyboardMarkup()
-    markup.row(
-        types.InlineKeyboardButton("TEST", callback_data="test"),
-        types.InlineKeyboardButton("TEST1", callback_data="test1")
-        )
-    bot.send_message(message.from_user.id, "OK!", reply_markup=markup)
-
-
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
+    print(call)
+
     if call.message:
-        if call.data == "test":
-            print("TEST")
-            start_handler(message=call)
-        elif call.data == "test1":
-            print("TEST1")
+        if call.data == "exit_to_start_menu":
+            bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
+            start_menu(message=call)
+        if call.data == "start_vk_import":
+            markup = types.InlineKeyboardMarkup(row_width=1)
+            markup.add(
+                types.InlineKeyboardButton("Импортировать", url="google.com"),
+                types.InlineKeyboardButton("❌  Отменить", callback_data="exit_to_start_menu")
+            )
+            bot.edit_message_text(
+                "Обратите внимание, что при импортировании сообществ будет автоматически "
+                "запрошен доступ к стене, это необходимо для получения самих публикаций. "
+                "Также это необходимо, чтобы увеличить максимальное количество групп до 30 "
+                "и понизить время обновления до 15 минут. Если Вы хотите импортировать больше "
+                "30 сообществ, то необходимо приобрести UNIQUE (подробнее о ней в FAQ).",
+                parse_mode="Markdown", reply_markup=markup,
+                chat_id=call.from_user.id, message_id=call.message.message_id
+            )
+        elif call.data == "start_menu_direct_url":
+            bot.edit_message_text(
+                "Отлично! Теперь отправьте мне ссылку на сообщество с помощью команды /add (пример правильной "
+                "команды: `/add vk.com/examplecommunity`).",
+                parse_mode="Markdown", chat_id=call.from_user.id, message_id=call.message.message_id
+            )
+        elif call.data == "start_menu_next":
+            print("OK")
         bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
+
+
+@bot.message_handler(commands=['start'])
+def start_handler(message):
+    print(message)
+
+    if "ru" not in message.from_user.language_code:
+        bot.send_message(message.from_user.id,
+                         "❗  *Unfortunately, the bot doesn't speak your language. So if you are not able to understand "
+                         "the text that is written below, use an online translator such as Google Translate.*",
+                         parse_mode="Markdown")
+
+    bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
+    start_menu(message)
+
+    _aloop = asyncio.new_event_loop()
+    asyncio.set_event_loop(_aloop)
+
+    _aloop.run_until_complete(db.execute(
+        'INSERT INTO users("id") VALUES($1) RETURNING "id", "is_paid", "vk_token", "communities";',
+        message.from_user.id
+    ))
+
+
+def start_menu(message):
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        types.InlineKeyboardButton("Импортировать все мои сообщества", callback_data="start_vk_import"),
+        types.InlineKeyboardButton("Указать прямую ссылку на сообщество", callback_data="start_menu_direct_url")
+        )
+    bot.send_message(message.from_user.id,
+                     "Выберите способ, с помощью которого Вы хотите подписаться на первое сообщество ВКонтакте, "
+                     "используя мои возможности.",
+                     reply_markup=markup)
+
+
+@bot.message_handler(commands=['add'])
+def command_add(message):
+    _aloop = asyncio.new_event_loop()
+    asyncio.set_event_loop(_aloop)
+
+    communities = []
+    communities_old = _aloop.run_until_complete(db.fetch(
+        'SELECT communities FROM users WHERE id = $1;',
+        message.from_user.id
+    ))['communities']
+    print(communities_old)
+    if communities_old:
+        communities_old = ast.literal_eval(communities_old)
+        for elm in communities_old:
+            communities.extend([elm])
+
+    try:
+        cm_url = message.text.split('vk.com/')[1]
+
+        if cm_url in communities:
+            bot.send_message(message.from_user.id,
+                             "В Ваших подписках уже есть такое сообщество, добавьте другое.")
+        else:
+            communities.extend([cm_url])
+            _aloop.run_until_complete(db.execute(
+                'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", "communities";',
+                str(communities), message.from_user.id
+            ))
+    except Exception:
+        bot.send_message(message.from_user.id,
+                         "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
+                         "Пример правильной ссылки: `vk.com/examplecommunity`", parse_mode="Markdown")
 
 
 """
@@ -209,12 +341,4 @@ def post_polling():
             print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
 """
 
-if __name__ == "__main__":
-    # post_polling = threading.Thread(target=post_polling())
-    bot_polling = threading.Thread(target=bot.polling(none_stop=True))
-
-    # post_polling.daemon = True
-    bot_polling.daemon = True
-
-    # post_polling.start()
-    bot_polling.start()
+bot.polling(none_stop=True)
