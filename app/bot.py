@@ -110,8 +110,7 @@ def callback_inline(call):
             )
         elif call.data == "start_menu_direct_url":
             bot.edit_message_text(
-                "Отлично! Теперь отправьте мне ссылку на сообщество с помощью команды /add (пример правильной "
-                "команды: `/add vk.com/examplecommunity`).",
+                "Отлично! Теперь отправьте мне ссылку на сообщество с помощью команды /add.",
                 parse_mode="Markdown", chat_id=call.from_user.id, message_id=call.message.message_id
             )
         elif call.data == "start_menu_next":
@@ -153,6 +152,36 @@ def start_menu(message):
                      reply_markup=markup)
 
 
+@bot.message_handler(commands=['debug'])
+def command_debug(message):
+    _aloop = asyncio.new_event_loop()
+    asyncio.set_event_loop(_aloop)
+
+    is_paid = _aloop.run_until_complete(db.fetch(
+        'SELECT is_paid FROM users WHERE id = $1;',
+        message.from_user.id
+    ))['is_paid']
+    communities = _aloop.run_until_complete(db.fetch(
+        'SELECT communities FROM users WHERE id = $1;',
+        message.from_user.id
+    ))['communities']
+
+    bot.send_message(message.from_user.id,
+                     "Вот информация, которая может помочь людям с хорошими намерениями."
+                     "\n\n*Не скидывайте ее тому, кому не доверяете, хотя здесь фактически нет конфиденциальной "
+                     "информации, но зачем предоставлять лишнюю информацию людям?*"
+                     "\n\n*Global:*"
+                     "\nUser ID: `{0}`"
+                     "\nMessage ID: `{1}`"
+                     "\nLanguage Code: `{2}`"
+                     "\n\n*Database:*"
+                     "\nIs Paid: `{3}`"
+                     "\nCommunities: `{4}`".format(
+                        str(message.from_user.id), str(message.message_id),
+                        str(message.from_user.language_code), str(is_paid), str(communities)
+                     ), parse_mode="Markdown")
+
+
 @bot.message_handler(commands=['add'])
 def command_add(message):
     _aloop = asyncio.new_event_loop()
@@ -176,6 +205,9 @@ def command_add(message):
             bot.send_message(message.from_user.id,
                              "В Ваших подписках уже есть такое сообщество, добавьте другое.")
         else:
+            bot.send_message(message.from_user.id,
+                             "Вы успешно добавили новое сообщество в подписки! Надеюсь, оно хорошее (:")
+
             communities.extend([cm_url])
             _aloop.run_until_complete(db.execute(
                 'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", "communities";',
@@ -184,7 +216,7 @@ def command_add(message):
     except Exception:
         bot.send_message(message.from_user.id,
                          "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
-                         "Пример правильной ссылки: `vk.com/examplecommunity`", parse_mode="Markdown")
+                         "Пример правильной команды: `vk.com/examplecommunity`", parse_mode="Markdown")
 
 
 """
