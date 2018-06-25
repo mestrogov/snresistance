@@ -29,7 +29,7 @@ class db:
 
             await postgresql_connection.close()
         except Exception as e:
-            print("An unexpected error was occurred while calling the method: " +
+            print("An unexpected error was occurred while calling the method:\n" +
                   str(type(e).__name__) + ': ' + str(e) + ".")
 
     @classmethod
@@ -44,7 +44,7 @@ class db:
             await postgresql_connection.execute(*args)
             await postgresql_connection.close()
         except Exception as e:
-            print("An unexpected error was occurred while calling the method: " +
+            print("An unexpected error was occurred while calling the method:\n" +
                   str(type(e).__name__) + ': ' + str(e) + ".")
 
     @classmethod
@@ -61,7 +61,7 @@ class db:
             # The result can be parsed by using: result[0]['COLUMN']
             return result[0]
         except Exception as e:
-            print("An unexpected error was occurred while calling the method: " +
+            print("An unexpected error was occurred while calling the method:\n" +
                   str(type(e).__name__) + ': ' + str(e) + ".")
 
 
@@ -87,173 +87,200 @@ def handler(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
-    print(call)
+    try:
+        print(call)
 
-    if call.message:
-        if call.data == "exit_to_start_menu":
-            bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
-            start_menu(message=call)
-        if call.data == "start_vk_import":
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            markup.add(
-                types.InlineKeyboardButton("Импортировать", url="google.com"),
-                types.InlineKeyboardButton("❌  Отменить", callback_data="exit_to_start_menu")
-            )
-            bot.edit_message_text(
-                "Обратите внимание, что при импортировании сообществ будет автоматически "
-                "запрошен доступ к стене, это необходимо для получения самих публикаций. "
-                "Также это необходимо, чтобы увеличить максимальное количество групп до 30 "
-                "и понизить время обновления до 15 минут. Если Вы хотите импортировать больше "
-                "30 сообществ, то необходимо приобрести UNIQUE (подробнее о ней в FAQ).",
-                parse_mode="Markdown", reply_markup=markup,
-                chat_id=call.from_user.id, message_id=call.message.message_id
-            )
-        elif call.data == "start_menu_direct_url":
-            bot.edit_message_text(
-                "Отлично! Теперь отправьте мне ссылку на сообщество с помощью команды /add.",
-                parse_mode="Markdown", chat_id=call.from_user.id, message_id=call.message.message_id
-            )
-        elif call.data == "start_menu_next":
-            print("OK")
-        bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
+        if call.message:
+            if call.data == "exit_to_start_menu":
+                bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
+                start_menu(message=call)
+            if call.data == "start_vk_import":
+                markup = types.InlineKeyboardMarkup(row_width=1)
+                markup.add(
+                    types.InlineKeyboardButton("Импортировать", url="google.com"),
+                    types.InlineKeyboardButton("❌  Отменить", callback_data="exit_to_start_menu")
+                )
+                bot.edit_message_text(
+                    "Обратите внимание, что при импортировании сообществ будет автоматически "
+                    "запрошен доступ к стене, это необходимо для получения самих публикаций. "
+                    "Также это необходимо, чтобы увеличить максимальное количество групп до 30 "
+                    "и понизить время обновления до 15 минут. Если Вы хотите импортировать больше "
+                    "30 сообществ, то необходимо приобрести UNIQUE (подробнее о ней в FAQ).",
+                    parse_mode="Markdown", reply_markup=markup,
+                    chat_id=call.from_user.id, message_id=call.message.message_id
+                )
+            elif call.data == "start_menu_direct_url":
+                bot.edit_message_text(
+                    "Отлично! Теперь отправьте мне ссылку на сообщество с помощью команды /add.",
+                    parse_mode="Markdown", chat_id=call.from_user.id, message_id=call.message.message_id
+                )
+            elif call.data == "start_menu_next":
+                print("OK")
+            bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
+    except Exception as e:
+        print("An unexpected error was occurred while calling the method:\n" +
+              str(type(e).__name__) + ': ' + str(e) + ".")
 
 
 @bot.message_handler(commands=['start'])
 def start_handler(message):
-    print(message)
+    try:
+        print(message)
 
-    if "ru" not in message.from_user.language_code:
-        bot.send_message(message.from_user.id,
-                         "❗  *Unfortunately, the bot doesn't speak your language. So if you are not able to understand "
-                         "the text that is written below, use an online translator such as Google Translate.*",
-                         parse_mode="Markdown")
+        if "ru" not in message.from_user.language_code:
+            bot.send_message(message.from_user.id,
+                             "❗  *Unfortunately, the bot doesn't speak your language. So if you are "
+                             "not able to understand the text that is written below, use an online translator "
+                             "such as Google Translate.*",
+                             parse_mode="Markdown")
 
-    bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
-    start_menu(message)
+        bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
+        start_menu(message)
 
-    _aloop = asyncio.new_event_loop()
-    asyncio.set_event_loop(_aloop)
+        _aloop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_aloop)
 
-    _aloop.run_until_complete(db.execute(
-        'INSERT INTO users("id") VALUES($1) RETURNING "id", "is_paid", "vk_token", "communities";',
-        message.from_user.id
-    ))
+        _aloop.run_until_complete(db.execute(
+            'INSERT INTO users("id") VALUES($1) RETURNING "id", "is_paid", "vk_token", "communities";',
+            message.from_user.id
+        ))
+    except Exception as e:
+        print("An unexpected error was occurred while calling the method:\n" +
+              str(type(e).__name__) + ': ' + str(e) + ".")
 
 
 def start_menu(message):
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(
-        types.InlineKeyboardButton("Импортировать все мои сообщества", callback_data="start_vk_import"),
-        types.InlineKeyboardButton("Указать прямую ссылку на сообщество", callback_data="start_menu_direct_url")
-        )
-    bot.send_message(message.from_user.id,
-                     "Выберите способ, с помощью которого Вы хотите подписаться на первое сообщество ВКонтакте, "
-                     "используя мои возможности.",
-                     reply_markup=markup)
+    try:
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(
+            types.InlineKeyboardButton("Импортировать все мои сообщества", callback_data="start_vk_import"),
+            types.InlineKeyboardButton("Указать прямую ссылку на сообщество", callback_data="start_menu_direct_url")
+            )
+        bot.send_message(message.from_user.id,
+                         "Выберите способ, с помощью которого Вы хотите подписаться на первое сообщество ВКонтакте, "
+                         "используя мои возможности.",
+                         reply_markup=markup)
+    except Exception as e:
+        print("An unexpected error was occurred while calling the method:\n" +
+              str(type(e).__name__) + ': ' + str(e) + ".")
 
 
 @bot.message_handler(commands=['debug'])
 def command_debug(message):
-    _aloop = asyncio.new_event_loop()
-    asyncio.set_event_loop(_aloop)
+    try:
+        _aloop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_aloop)
 
-    is_paid = _aloop.run_until_complete(db.fetch(
-        'SELECT is_paid FROM users WHERE id = $1;',
-        message.from_user.id
-    ))['is_paid']
-    communities = _aloop.run_until_complete(db.fetch(
-        'SELECT communities FROM users WHERE id = $1;',
-        message.from_user.id
-    ))['communities']
+        is_paid = _aloop.run_until_complete(db.fetch(
+            'SELECT is_paid FROM users WHERE id = $1;',
+            message.from_user.id
+        ))['is_paid']
+        communities = _aloop.run_until_complete(db.fetch(
+            'SELECT communities FROM users WHERE id = $1;',
+            message.from_user.id
+        ))['communities']
 
-    bot.send_message(message.from_user.id,
-                     "Вот информация, которая может помочь людям с хорошими намерениями."
-                     "\n\n*Не скидывайте ее тому, кому не доверяете, хотя здесь фактически нет конфиденциальной "
-                     "информации, но зачем предоставлять лишнюю информацию людям?*"
-                     "\n\n*Global:*"
-                     "\nUser ID: `{0}`"
-                     "\nMessage ID: `{1}`"
-                     "\nLanguage Code: `{2}`"
-                     "\n\n*Database:*"
-                     "\nIs Paid: `{3}`"
-                     "\nCommunities: `{4}`".format(
-                        str(message.from_user.id), str(message.message_id),
-                        str(message.from_user.language_code), str(is_paid), str(communities)
-                     ), parse_mode="Markdown")
+        bot.send_message(message.from_user.id,
+                         "Вот информация, которая может помочь людям с хорошими намерениями."
+                         "\n\n*Не скидывайте ее тому, кому не доверяете, хотя здесь фактически нет конфиденциальной "
+                         "информации, но зачем предоставлять лишнюю информацию людям?*"
+                         "\n\n*Global:*"
+                         "\nUser ID: `{0}`"
+                         "\nMessage ID: `{1}`"
+                         "\nLanguage Code: `{2}`"
+                         "\n\n*Database:*"
+                         "\nIs Paid: `{3}`"
+                         "\nCommunities: `{4}`".format(
+                            str(message.from_user.id), str(message.message_id),
+                            str(message.from_user.language_code), str(is_paid), str(communities)
+                         ), parse_mode="Markdown")
+    except Exception as e:
+        print("An unexpected error was occurred while calling the method:\n" +
+              str(type(e).__name__) + ': ' + str(e) + ".")
 
 
 @bot.message_handler(commands=['add', 'subscribe', 'sub'])
 def command_add(message):
-    _aloop = asyncio.new_event_loop()
-    asyncio.set_event_loop(_aloop)
-
-    communities = []
-    communities_old = _aloop.run_until_complete(db.fetch(
-        'SELECT communities FROM users WHERE id = $1;',
-        message.from_user.id
-    ))['communities']
-    print(communities_old)
-    if communities_old:
-        communities_old = ast.literal_eval(communities_old)
-        for elm in communities_old:
-            communities.extend([elm])
-
     try:
-        cm_url = message.text.split('vk.com/')[1]
+        _aloop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_aloop)
 
-        if cm_url in communities:
-            bot.send_message(message.from_user.id,
-                             "В Ваших подписках уже есть такое сообщество, добавьте другое.")
-        else:
-            bot.send_message(message.from_user.id,
-                             "Вы успешно добавили новое сообщество в подписки! Надеюсь, оно хорошее (:")
+        communities = []
+        communities_old = _aloop.run_until_complete(db.fetch(
+            'SELECT communities FROM users WHERE id = $1;',
+            message.from_user.id
+        ))['communities']
+        print(communities_old)
+        if communities_old:
+            communities_old = ast.literal_eval(communities_old)
+            for elm in communities_old:
+                communities.extend([elm])
 
-            communities.extend([cm_url])
-            _aloop.run_until_complete(db.execute(
-                'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", "communities";',
-                str(communities), message.from_user.id
-            ))
-    except Exception:
-        bot.send_message(message.from_user.id,
-                         "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
-                         "Пример правильной команды: `vk.com/examplecommunity`", parse_mode="Markdown")
+        try:
+            cm_url = message.text.split('vk.com/')[1]
+
+            if cm_url in communities:
+                bot.send_message(message.from_user.id,
+                                 "В Ваших подписках уже есть такое сообщество, добавьте другое.")
+            else:
+                bot.send_message(message.from_user.id,
+                                 "Вы успешно добавили новое сообщество в подписки! Надеюсь, оно хорошее (:")
+
+                communities.extend([cm_url])
+                _aloop.run_until_complete(db.execute(
+                    'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", '
+                    '"communities";',
+                    str(communities), message.from_user.id
+                ))
+        except Exception:
+            bot.send_message(message.from_user.id,
+                             "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
+                             "Пример правильной команды: `vk.com/examplecommunity`", parse_mode="Markdown")
+    except Exception as e:
+        print("An unexpected error was occurred while calling the method:\n" +
+              str(type(e).__name__) + ': ' + str(e) + ".")
 
 
 @bot.message_handler(commands=['remove', 'unsubscribe', 'unsub'])
 def command_remove(message):
-    _aloop = asyncio.new_event_loop()
-    asyncio.set_event_loop(_aloop)
-
-    communities = []
-    communities_db = _aloop.run_until_complete(db.fetch(
-        'SELECT communities FROM users WHERE id = $1;',
-        message.from_user.id
-    ))['communities']
-    print(communities_db)
-    if communities_db:
-        communities_db = ast.literal_eval(communities_db)
-        for elm in communities_db:
-            communities.extend([elm])
-
     try:
-        cm_url = message.text.split('vk.com/')[1]
+        _aloop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_aloop)
 
-        if cm_url not in communities:
-            bot.send_message(message.from_user.id,
-                             "В Ваших подписках нет такого сообщества.")
-        else:
-            bot.send_message(message.from_user.id,
-                             "Вы успешно отписались от сообщества!")
+        communities = []
+        communities_db = _aloop.run_until_complete(db.fetch(
+            'SELECT communities FROM users WHERE id = $1;',
+            message.from_user.id
+        ))['communities']
+        print(communities_db)
+        if communities_db:
+            communities_db = ast.literal_eval(communities_db)
+            for elm in communities_db:
+                communities.extend([elm])
 
-            communities.remove(cm_url)
-            _aloop.run_until_complete(db.execute(
-                'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", "communities";',
-                str(communities), message.from_user.id
-            ))
-    except Exception:
-        bot.send_message(message.from_user.id,
-                         "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
-                         "Пример правильной команды: `vk.com/examplecommunity`", parse_mode="Markdown")
+        try:
+            cm_url = message.text.split('vk.com/')[1]
+
+            if cm_url not in communities:
+                bot.send_message(message.from_user.id,
+                                 "В Ваших подписках нет такого сообщества.")
+            else:
+                bot.send_message(message.from_user.id,
+                                 "Вы успешно отписались от сообщества!")
+
+                communities.remove(cm_url)
+                _aloop.run_until_complete(db.execute(
+                    'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", '
+                    '"communities";',
+                    str(communities), message.from_user.id
+                ))
+        except Exception:
+            bot.send_message(message.from_user.id,
+                             "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
+                             "Пример правильной команды: `vk.com/examplecommunity`", parse_mode="Markdown")
+    except Exception as e:
+        print("An unexpected error was occurred while calling the method:\n" +
+              str(type(e).__name__) + ': ' + str(e) + ".")
 
 
 """
@@ -410,4 +437,8 @@ def post_polling():
             print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
 """
 
-bot.polling(none_stop=True)
+try:
+    bot.polling(none_stop=True)
+except Exception as e:
+    print("An unexpected error was occurred while calling the method:\n" +
+          str(type(e).__name__) + ': ' + str(e) + ".")

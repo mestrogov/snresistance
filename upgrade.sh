@@ -1,6 +1,6 @@
 #!/bin/bash
 
-screenName="paparazziBot"
+screenName="SNResistance"
 sshKeyPath="/home/citorijawa/.ssh/git_vps"
 
 eval $(ssh-agent -s)
