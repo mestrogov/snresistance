@@ -182,7 +182,7 @@ def command_debug(message):
                      ), parse_mode="Markdown")
 
 
-@bot.message_handler(commands=['add'])
+@bot.message_handler(commands=['add', 'subscribe', 'sub'])
 def command_add(message):
     _aloop = asyncio.new_event_loop()
     asyncio.set_event_loop(_aloop)
@@ -209,6 +209,43 @@ def command_add(message):
                              "Вы успешно добавили новое сообщество в подписки! Надеюсь, оно хорошее (:")
 
             communities.extend([cm_url])
+            _aloop.run_until_complete(db.execute(
+                'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", "communities";',
+                str(communities), message.from_user.id
+            ))
+    except Exception:
+        bot.send_message(message.from_user.id,
+                         "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
+                         "Пример правильной команды: `vk.com/examplecommunity`", parse_mode="Markdown")
+
+
+@bot.message_handler(commands=['remove', 'unsubscribe', 'unsub'])
+def command_remove(message):
+    _aloop = asyncio.new_event_loop()
+    asyncio.set_event_loop(_aloop)
+
+    communities = []
+    communities_db = _aloop.run_until_complete(db.fetch(
+        'SELECT communities FROM users WHERE id = $1;',
+        message.from_user.id
+    ))['communities']
+    print(communities_db)
+    if communities_db:
+        communities_db = ast.literal_eval(communities_db)
+        for elm in communities_db:
+            communities.extend([elm])
+
+    try:
+        cm_url = message.text.split('vk.com/')[1]
+
+        if cm_url not in communities:
+            bot.send_message(message.from_user.id,
+                             "В Ваших подписках нет такого сообщества.")
+        else:
+            bot.send_message(message.from_user.id,
+                             "Вы успешно отписались от сообщества!")
+
+            communities.remove(cm_url)
             _aloop.run_until_complete(db.execute(
                 'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", "communities";',
                 str(communities), message.from_user.id
