@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import requests
+import shutil
+import secrets
+import os
 # noinspection PyPackageRequirements
 import telebot
 # noinspection PyPackageRequirements
@@ -348,13 +351,17 @@ def command_addchannel(message):
 @bot.channel_post_handler()
 def initchannel(message):
     try:
+        print("----------")
+        print("Channel Name: " + str(message.chat.title))
+        print("Channel ID: " + str(message.chat.id))
+
         _aloop = asyncio.new_event_loop()
         asyncio.set_event_loop(_aloop)
 
         if "!initchannel" in message.text:
             command = message.text.replace("!initchannel", "").strip().split("|")
 
-            user_id = command[0]
+            user_id = int(command[0])
             print(user_id)
             user_vktoken = _aloop.run_until_complete(db.fetch(
                 'SELECT vk_token FROM users WHERE id = $1;',
@@ -362,25 +369,46 @@ def initchannel(message):
             ))['vk_token']
             print(user_vktoken)
 
-            community_id = requests.post("https://api.vk.com/method/groups.getById",
-                                         data={
-                                             "group_id": str(command[1]),
-                                             "access_token": str(user_vktoken),
-                                             "v": "5.78"
-                                         }).json()['response'][0]['id']
-            print(community_id)
+            community = requests.post("https://api.vk.com/method/groups.getById",
+                                      data={
+                                          "group_id": str(command[1]),
+                                          "fields": "status",
+                                          "access_token": str(user_vktoken),
+                                          "v": "5.78"
+                                      }).json()['response'][0]
+            print(community)
 
             channel_id = message.chat.id
             init_date = calendar.timegm(datetime.datetime.utcnow().utctimetuple())
 
+            try:
+                lfile_name = str(secrets.token_hex(16)) + '.png'
+                lfile_res = requests.get(community['photo_200'], stream=True)
+                with open(lfile_name, 'wb') as lfile_out:
+                    shutil.copyfileobj(lfile_res.raw, lfile_out)
+                lphoto = open(lfile_name, 'rb')
+                os.remove(lfile_name)
+                bot.set_chat_photo(channel_id, lphoto)
+            except:
+                bot.send_message(user_id,
+                                 "Не удалось установить логотип канала.")
+                return
+
+            try:
+                bot.set_chat_description(channel_id, config.channelDescription)
+            except:
+                bot.send_message(user_id,
+                                 "Не удалось изменить описание канала.")
+                return
+
             aloop.run_until_complete(db.execute(
                 'INSERT INTO channels("id", "owner_id", "community_id", "initiation_date") '
                 'VALUES($1, $2, $3, $4) RETURNING "id", "owner_id", "community_id", "initiation_date";',
-                int(channel_id), int(user_id), int(community_id), int(init_date)
-            ))
-        print("----------")
-        print("Channel Name: " + str(message.chat.title))
-        print("Channel ID: " + str(message.chat.id))
+                int(channel_id), int(user_id), int(community['id']), int(init_date)
+             ))
+
+            bot.send_message(int(user_id),
+                             "Ваш канал успешно настроен и готов для получения новых постов.")
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,
