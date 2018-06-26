@@ -382,6 +382,13 @@ def initchannel(message):
             init_date = calendar.timegm(datetime.datetime.utcnow().utctimetuple())
 
             try:
+                bot.set_chat_title(channel_id, community['name'])
+            except:
+                bot.send_message(user_id,
+                                 "Не удалось изменить имя канала.")
+                return
+
+            try:
                 lfile_name = str(secrets.token_hex(16)) + '.png'
                 lfile_res = requests.get(community['photo_200'], stream=True)
                 with open(lfile_name, 'wb') as lfile_out:
@@ -404,10 +411,13 @@ def initchannel(message):
                 return
 
             try:
-                bot.set_chat_description(channel_id, config.channelDescription)
+                bot.set_chat_description(channel_id, "Тестовое описание, чтобы проверить права Бота.")
             except:
                 bot.send_message(user_id,
-                                 "Не удалось изменить описание канала (или оно не было изменено).")
+                                 "Не удалось изменить описание канала.")
+                return
+
+            bot.set_chat_description(channel_id, config.channelDescription)
 
             aloop.run_until_complete(db.execute(
                 'INSERT INTO channels("id", "owner_id", "community_id", "initiation_date") '
