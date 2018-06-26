@@ -112,6 +112,14 @@ def callback_inline(call):
                 print("OK")
             bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
     except Exception as e:
+        try:
+            bot.send_message(call.from_user.id,
+                             "❗  *Извините, что-то пошло не так, но в скором времени все исправится. "
+                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
+                             parse_mode="Markdown")
+        except:
+            pass
+
         print("An unexpected error was occurred while calling the method:\n" +
               str(type(e).__name__) + ': ' + str(e) + ".")
 
@@ -139,6 +147,14 @@ def start_handler(message):
             message.from_user.id
         ))
     except Exception as e:
+        try:
+            bot.send_message(message.from_user.id,
+                             "❗  *Извините, что-то пошло не так, но в скором времени все исправится. "
+                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
+                             parse_mode="Markdown")
+        except:
+            pass
+
         print("An unexpected error was occurred while calling the method:\n" +
               str(type(e).__name__) + ': ' + str(e) + ".")
 
@@ -155,6 +171,14 @@ def start_menu(message):
                          "используя мои возможности.",
                          reply_markup=markup)
     except Exception as e:
+        try:
+            bot.send_message(message.from_user.id,
+                             "❗  *Извините, что-то пошло не так, но в скором времени все исправится. "
+                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
+                             parse_mode="Markdown")
+        except:
+            pass
+
         print("An unexpected error was occurred while calling the method:\n" +
               str(type(e).__name__) + ': ' + str(e) + ".")
 
@@ -189,6 +213,14 @@ def command_debug(message):
                             str(message.from_user.language_code), str(is_paid), str(communities)
                          ), parse_mode="Markdown")
     except Exception as e:
+        try:
+            bot.send_message(message.from_user.id,
+                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
+                             parse_mode="Markdown")
+        except:
+            pass
+
         print("An unexpected error was occurred while calling the method:\n" +
               str(type(e).__name__) + ': ' + str(e) + ".")
 
@@ -231,6 +263,14 @@ def command_add(message):
                              "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
                              "Пример правильной команды: `vk.com/examplecommunity`", parse_mode="Markdown")
     except Exception as e:
+        try:
+            bot.send_message(message.from_user.id,
+                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
+                             parse_mode="Markdown")
+        except:
+            pass
+
         print("An unexpected error was occurred while calling the method:\n" +
               str(type(e).__name__) + ': ' + str(e) + ".")
 
@@ -273,6 +313,14 @@ def command_remove(message):
                              "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
                              "Пример правильной команды: `vk.com/examplecommunity`", parse_mode="Markdown")
     except Exception as e:
+        try:
+            bot.send_message(message.from_user.id,
+                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
+                             parse_mode="Markdown")
+        except:
+            pass
+
         print("An unexpected error was occurred while calling the method:\n" +
               str(type(e).__name__) + ': ' + str(e) + ".")
 
@@ -285,6 +333,14 @@ def command_addchannel(message):
                          "`/initchannel@SNResistance {0}_id`",
                          parse_mode="Markdown")
     except Exception as e:
+        try:
+            bot.send_message(message.from_user.id,
+                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
+                             parse_mode="Markdown")
+        except:
+            pass
+
         print("An unexpected error was occurred while calling the method:\n" +
               str(type(e).__name__) + ': ' + str(e) + ".")
 
@@ -326,6 +382,14 @@ def initchannel(message):
         print("Channel Name: " + str(message.chat.title))
         print("Channel ID: " + str(message.chat.id))
     except Exception as e:
+        try:
+            bot.send_message(message.from_user.id,
+                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
+                             parse_mode="Markdown")
+        except:
+            pass
+
         print("An unexpected error was occurred while calling the method:\n" +
               str(type(e).__name__) + ': ' + str(e) + ".")
 
