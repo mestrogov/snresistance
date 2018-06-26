@@ -9,6 +9,7 @@ from telebot import types
 import config as config
 import time
 import datetime
+import calendar
 import threading
 import asyncio
 import asyncpg
@@ -76,13 +77,6 @@ sentPosts = []
 
 aloop = asyncio.new_event_loop()
 asyncio.set_event_loop(aloop)
-
-
-@bot.channel_post_handler()
-def handler(message):
-    print("----------")
-    print("Channel Name: " + str(message.chat.title))
-    print("Channel ID: " + str(message.chat.id))
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -278,6 +272,59 @@ def command_remove(message):
             bot.send_message(message.from_user.id,
                              "Упс! Похоже, что Вы указали ссылку в неправильном формате. "
                              "Пример правильной команды: `vk.com/examplecommunity`", parse_mode="Markdown")
+    except Exception as e:
+        print("An unexpected error was occurred while calling the method:\n" +
+              str(type(e).__name__) + ': ' + str(e) + ".")
+
+
+@bot.message_handler(commands=['addchannel'])
+def command_addchannel(message):
+    try:
+        bot.send_message(message.from_user.id,
+                         "Вы решили создать канал, добавьте меня в него и напишите команду: "
+                         "`/initchannel@SNResistance {0}_id`",
+                         parse_mode="Markdown")
+    except Exception as e:
+        print("An unexpected error was occurred while calling the method:\n" +
+              str(type(e).__name__) + ': ' + str(e) + ".")
+
+
+@bot.channel_post_handler()
+def initchannel(message):
+    try:
+        _aloop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_aloop)
+
+        if "!initchannel" in message.text:
+            command = message.text.replace("!initchannel", "").strip().split("|")
+
+            user_id = command[0]
+            print(user_id)
+            user_vktoken = _aloop.run_until_complete(db.fetch(
+                'SELECT vk_token FROM users WHERE id = $1;',
+                int(user_id)
+            ))['vk_token']
+            print(user_vktoken)
+
+            community_id = requests.post("https://api.vk.com/method/groups.getById",
+                                         data={
+                                             "group_id": str(command[1]),
+                                             "access_token": str(user_vktoken),
+                                             "v": "5.78"
+                                         }).json()['response'][0]['id']
+            print(community_id)
+
+            channel_id = message.chat.id
+            init_date = calendar.timegm(datetime.datetime.utcnow().utctimetuple())
+
+            aloop.run_until_complete(db.execute(
+                'INSERT INTO channels("id", "owner_id", "community_id", "initiation_date") '
+                'VALUES($1, $2, $3, $4) RETURNING "id", "owner_id", "community_id", "initiation_date";',
+                int(channel_id), int(user_id), int(community_id), int(init_date)
+            ))
+        print("----------")
+        print("Channel Name: " + str(message.chat.title))
+        print("Channel ID: " + str(message.chat.id))
     except Exception as e:
         print("An unexpected error was occurred while calling the method:\n" +
               str(type(e).__name__) + ': ' + str(e) + ".")
