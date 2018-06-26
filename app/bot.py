@@ -372,7 +372,7 @@ def initchannel(message):
             community = requests.post("https://api.vk.com/method/groups.getById",
                                       data={
                                           "group_id": str(command[1]),
-                                          "fields": "status",
+                                          "fields": "description",
                                           "access_token": str(user_vktoken),
                                           "v": "5.78"
                                       }).json()['response'][0]
@@ -395,11 +395,19 @@ def initchannel(message):
                 return
 
             try:
+                pinned_post = config.channelDescription + "\n\n\n\n" + str(community['description'])
+                pin_id = bot.send_message(channel_id, pinned_post)
+                bot.pin_chat_message(channel_id, pin_id.json['message_id'])
+            except:
+                bot.send_message(user_id,
+                                 "Не удалось отправить сообщение и закрепить его в канале.")
+                return
+
+            try:
                 bot.set_chat_description(channel_id, config.channelDescription)
             except:
                 bot.send_message(user_id,
-                                 "Не удалось изменить описание канала.")
-                return
+                                 "Не удалось изменить описание канала (или оно не было изменено).")
 
             aloop.run_until_complete(db.execute(
                 'INSERT INTO channels("id", "owner_id", "community_id", "initiation_date") '
