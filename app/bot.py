@@ -85,16 +85,10 @@ class db:
                   str(type(e).__name__) + ': ' + str(e) + ".")
 
 
-asyncio.get_event_loop().run_until_complete(db.connection())
-
-
-bot = telebot.TeleBot(config.botToken, threaded=False)
+bot = telebot.TeleBot(config.botToken)
 
 botVKSentErrorMessage = None
 sentPosts = []
-
-aloop = asyncio.new_event_loop()
-asyncio.set_event_loop(aloop)
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -169,10 +163,10 @@ def command_start(message):
         bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
         menu_start(message)
 
-        _aloop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_aloop)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        _aloop.run_until_complete(db.execute(
+        loop.run_until_complete(db.execute(
             'INSERT INTO users("id") VALUES($1) RETURNING "id", "is_paid", "vk_token", "communities";',
             message.from_user.id
         ))
@@ -222,14 +216,14 @@ def command_debug_handler(message):
 
 def command_debug(message):
     try:
-        _aloop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_aloop)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        is_paid = _aloop.run_until_complete(db.fetchrow(
+        is_paid = loop.run_until_complete(db.fetchrow(
             'SELECT is_paid FROM users WHERE id = $1;',
             message.from_user.id
         ))['is_paid']
-        communities = _aloop.run_until_complete(db.fetchrow(
+        communities = loop.run_until_complete(db.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
@@ -270,11 +264,11 @@ def command_add_handler(message):
 
 def command_add(message):
     try:
-        _aloop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_aloop)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         communities = []
-        communities_old = _aloop.run_until_complete(db.fetchrow(
+        communities_old = loop.run_until_complete(db.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
@@ -295,7 +289,7 @@ def command_add(message):
                                  "Вы успешно добавили новое сообщество в подписки! Надеюсь, оно хорошее (:")
 
                 communities.extend([cm_url])
-                _aloop.run_until_complete(db.execute(
+                loop.run_until_complete(db.execute(
                     'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", '
                     '"communities";',
                     str(communities), message.from_user.id
@@ -326,11 +320,11 @@ def command_remove_handler(message):
 
 def command_remove(message):
     try:
-        _aloop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_aloop)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         communities = []
-        communities_db = _aloop.run_until_complete(db.fetchrow(
+        communities_db = loop.run_until_complete(db.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
@@ -351,7 +345,7 @@ def command_remove(message):
                                  "Вы успешно отписались от сообщества!")
 
                 communities.remove(cm_url)
-                _aloop.run_until_complete(db.execute(
+                loop.run_until_complete(db.execute(
                     'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", '
                     '"communities";',
                     str(communities), message.from_user.id
@@ -417,15 +411,15 @@ def initiatechannel(message):
         print("Channel Name: " + str(message.chat.title))
         print("Channel ID: " + str(message.chat.id))
 
-        _aloop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_aloop)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         if "!initiateChannel" in message.text:
             command = message.text.replace("!initiateChannel", "").strip().split("|")
 
             user_id = int(command[0])
             print(user_id)
-            user_vktoken = _aloop.run_until_complete(db.fetchrow(
+            user_vktoken = loop.run_until_complete(db.fetchrow(
                 'SELECT vk_token FROM users WHERE id = $1;',
                 int(user_id)
             ))['vk_token']
@@ -481,7 +475,7 @@ def initiatechannel(message):
 
             bot.set_chat_description(channel_id, config.channelDescription)
 
-            aloop.run_until_complete(db.execute(
+            loop.run_until_complete(db.execute(
                 'INSERT INTO channels("id", "owner_id", "community_id", "initiation_date") '
                 'VALUES($1, $2, $3, $4) RETURNING "id", "owner_id", "community_id", "initiation_date";',
                 int(channel_id), int(user_id), int(community['id']), int(initiation_date)
@@ -627,24 +621,25 @@ def channelPolling():
         """
 
 
-try:
-    cPolling = threading.Thread(target=channelPolling)
-    cPolling.setDaemon(True)
-    cPolling.start()
-
-    # noinspection PyArgumentList
-    bPolling = threading.Thread(target=bot.polling, kwargs={'none_stop': True})
-    bPolling.setDaemon(True)
-    bPolling.start()
-
-    print(bot.get_me())
-
+if __name__ == "__main__":
     try:
-        while True:
-            print(threading.enumerate())
-            time.sleep(0.1)
-    except:
-        pass
-except Exception as e:
-    print("An unexpected error was occurred while calling the method:\n" +
-          str(type(e).__name__) + ': ' + str(e) + ".")
+        asyncio.get_event_loop().run_until_complete(db.connection())
+        print(bot.get_me())
+
+        cPolling = threading.Thread(target=channelPolling)
+        cPolling.setDaemon(True)
+        cPolling.start()
+
+        # noinspection PyArgumentList
+        bPolling = threading.Thread(target=bot.polling, kwargs={'none_stop': True})
+        bPolling.setDaemon(True)
+        bPolling.start()
+
+        try:
+            while True:
+                pass
+        except:
+            pass
+    except Exception as e:
+        print("An unexpected error was occurred while calling the method:\n" +
+              str(type(e).__name__) + ': ' + str(e) + ".")
