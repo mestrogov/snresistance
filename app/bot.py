@@ -63,7 +63,23 @@ class db:
             await postgresql_connection.close()
 
             # The result can be parsed by using: result[0]['COLUMN']
-            return result[0]
+            return result
+        except Exception as e:
+            print("An unexpected error was occurred while calling the method:\n" +
+                  str(type(e).__name__) + ': ' + str(e) + ".")
+
+    @classmethod
+    async def fetchrow(cls, *args):
+        try:
+            postgresql_connection = await asyncpg.connect(host=config.databaseHost,
+                                                          database=config.databaseName,
+                                                          user=config.databaseUsername,
+                                                          port=config.databasePort)
+
+            result = await postgresql_connection.fetchrow(*args)
+            await postgresql_connection.close()
+
+            return result
         except Exception as e:
             print("An unexpected error was occurred while calling the method:\n" +
                   str(type(e).__name__) + ': ' + str(e) + ".")
@@ -72,8 +88,7 @@ class db:
 asyncio.get_event_loop().run_until_complete(db.connection())
 
 
-bot = telebot.TeleBot(config.botToken)
-print(bot.get_me())
+bot = telebot.TeleBot(config.botToken, threaded=False)
 
 botVKSentErrorMessage = None
 sentPosts = []
@@ -83,14 +98,20 @@ asyncio.set_event_loop(aloop)
 
 
 @bot.callback_query_handler(func=lambda call: True)
-def callback_inline(call):
+def callback_query_handler(call):
+    thread = threading.Thread(target=callback_query, args=(call,))
+    thread.setDaemon(True)
+    thread.start()
+
+
+def callback_query(call):
     try:
         print(call)
 
         if call.message:
             if call.data == "exit_to_start_menu":
                 bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
-                start_menu(message=call)
+                menu_start(message=call)
             if call.data == "start_vk_import":
                 markup = types.InlineKeyboardMarkup(row_width=1)
                 markup.add(
@@ -128,7 +149,13 @@ def callback_inline(call):
 
 
 @bot.message_handler(commands=['start'])
-def start_handler(message):
+def command_start_handler(message):
+    thread = threading.Thread(target=command_start, args=(message,))
+    thread.setDaemon(True)
+    thread.start()
+
+
+def command_start(message):
     try:
         print(message)
 
@@ -140,7 +167,7 @@ def start_handler(message):
                              parse_mode="Markdown")
 
         bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
-        start_menu(message)
+        menu_start(message)
 
         _aloop = asyncio.new_event_loop()
         asyncio.set_event_loop(_aloop)
@@ -162,7 +189,7 @@ def start_handler(message):
               str(type(e).__name__) + ': ' + str(e) + ".")
 
 
-def start_menu(message):
+def menu_start(message):
     try:
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(
@@ -187,16 +214,22 @@ def start_menu(message):
 
 
 @bot.message_handler(commands=['debug'])
+def command_debug_handler(message):
+    thread = threading.Thread(target=command_debug, args=(message,))
+    thread.setDaemon(True)
+    thread.start()
+
+
 def command_debug(message):
     try:
         _aloop = asyncio.new_event_loop()
         asyncio.set_event_loop(_aloop)
 
-        is_paid = _aloop.run_until_complete(db.fetch(
+        is_paid = _aloop.run_until_complete(db.fetchrow(
             'SELECT is_paid FROM users WHERE id = $1;',
             message.from_user.id
         ))['is_paid']
-        communities = _aloop.run_until_complete(db.fetch(
+        communities = _aloop.run_until_complete(db.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
@@ -229,13 +262,19 @@ def command_debug(message):
 
 
 @bot.message_handler(commands=['add', 'subscribe', 'sub'])
+def command_add_handler(message):
+    thread = threading.Thread(target=command_add, args=(message,))
+    thread.setDaemon(True)
+    thread.start()
+
+
 def command_add(message):
     try:
         _aloop = asyncio.new_event_loop()
         asyncio.set_event_loop(_aloop)
 
         communities = []
-        communities_old = _aloop.run_until_complete(db.fetch(
+        communities_old = _aloop.run_until_complete(db.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
@@ -279,13 +318,19 @@ def command_add(message):
 
 
 @bot.message_handler(commands=['remove', 'unsubscribe', 'unsub'])
+def command_remove_handler(message):
+    thread = threading.Thread(target=command_remove, args=(message,))
+    thread.setDaemon(True)
+    thread.start()
+
+
 def command_remove(message):
     try:
         _aloop = asyncio.new_event_loop()
         asyncio.set_event_loop(_aloop)
 
         communities = []
-        communities_db = _aloop.run_until_complete(db.fetch(
+        communities_db = _aloop.run_until_complete(db.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
@@ -329,12 +374,23 @@ def command_remove(message):
 
 
 @bot.message_handler(commands=['addchannel'])
+def command_addchannel_handler(message):
+    thread = threading.Thread(target=command_addchannel, args=(message,))
+    thread.setDaemon(True)
+    thread.start()
+
+
 def command_addchannel(message):
     try:
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(
+            types.InlineKeyboardButton(text='Превратить канал',
+                                       switch_inline_query="!initiateChannel 1243|1234"),
+        )
         bot.send_message(message.from_user.id,
                          "Вы решили создать канал, добавьте меня в него и напишите команду: "
                          "`/initchannel@SNResistance {0}_id`",
-                         parse_mode="Markdown")
+                         parse_mode="Markdown", reply_markup=markup)
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,
@@ -349,7 +405,13 @@ def command_addchannel(message):
 
 
 @bot.channel_post_handler()
-def initchannel(message):
+def command_initiatechannel_handler(message):
+    thread = threading.Thread(target=initiatechannel, args=(message,))
+    thread.setDaemon(True)
+    thread.start()
+
+
+def initiatechannel(message):
     try:
         print("----------")
         print("Channel Name: " + str(message.chat.title))
@@ -358,12 +420,12 @@ def initchannel(message):
         _aloop = asyncio.new_event_loop()
         asyncio.set_event_loop(_aloop)
 
-        if "!initchannel" in message.text:
-            command = message.text.replace("!initchannel", "").strip().split("|")
+        if "!initiateChannel" in message.text:
+            command = message.text.replace("!initiateChannel", "").strip().split("|")
 
             user_id = int(command[0])
             print(user_id)
-            user_vktoken = _aloop.run_until_complete(db.fetch(
+            user_vktoken = _aloop.run_until_complete(db.fetchrow(
                 'SELECT vk_token FROM users WHERE id = $1;',
                 int(user_id)
             ))['vk_token']
@@ -379,7 +441,7 @@ def initchannel(message):
             print(community)
 
             channel_id = message.chat.id
-            init_date = calendar.timegm(datetime.datetime.utcnow().utctimetuple())
+            initiation_date = calendar.timegm(datetime.datetime.utcnow().utctimetuple())
 
             try:
                 bot.set_chat_title(channel_id, community['name'])
@@ -422,7 +484,7 @@ def initchannel(message):
             aloop.run_until_complete(db.execute(
                 'INSERT INTO channels("id", "owner_id", "community_id", "initiation_date") '
                 'VALUES($1, $2, $3, $4) RETURNING "id", "owner_id", "community_id", "initiation_date";',
-                int(channel_id), int(user_id), int(community['id']), int(init_date)
+                int(channel_id), int(user_id), int(community['id']), int(initiation_date)
              ))
 
             bot.send_message(int(user_id),
@@ -440,162 +502,149 @@ def initchannel(message):
               str(type(e).__name__) + ': ' + str(e) + ".")
 
 
-"""
-def post_polling():
-    global bot
-    global botVKSentErrorMessage
-    global sentPosts
+# noinspection PyPep8Naming
+def channelPolling():
+    print("OK")
+    """    
     while True:
         try:
-            print("sentPosts:" + str(sentPosts))
-            for groupID in config.vkGroupsIDs:
-                try:
-                    print(len(config.vkAccessTokens))
+            _aloop = asyncio.new_event_loop()
+            asyncio.set_event_loop(_aloop)
 
-                    posts_count = 10
-                    for pnum in range(len(config.vkAccessTokens)):
-                        posts = requests.post("https://api.vk.com/method/wall.get",
-                                              data={
-                                                  "owner_id": str("-" + str(groupID)),
-                                                  "offset": 1,
-                                                  "count": posts_count,
-                                                  "filter": "all",
-                                                  "extended": 1,
-                                                  "access_token": config.vkAccessTokens[pnum],
-                                                  "v": "5.78"
-                                              })
+            communities = _aloop.run_until_complete(db.fetch(
+                'SELECT id, owner_id, community_id FROM channels;',
+            ))
+            print(communities)
 
-                        try:
-                            posts.json()['error']
-                        except:
-                            print("wall.get, using specified access_token: " + str(config.vkAccessTokens[pnum]))
-                            break
+            time.sleep(1)
 
-                    # print(posts.text)
-                    # noinspection PyUnboundLocalVariable
-                    posts = posts.json()
+            for num in range(len(communities)):
+                vk_token = _aloop.run_until_complete(db.fetchrow(
+                    'SELECT vk_token FROM users WHERE id = $1;',
+                    communities[num]['owner_id']
+                ))['vk_token']
 
-                    # noinspection PyStatementEffect
-                    posts['response']
+                posts = requests.post("https://api.vk.com/method/wall.get",
+                                      data={
+                                          "owner_id": str("-" + str(communities[num]['community_id'])),
+                                          "offset": 1,
+                                          "count": 15,
+                                          "filter": "all",
+                                          "extended": 1,
+                                          "access_token": vk_token,
+                                          "v": "5.78"
+                                      })
 
-                    if botVKSentErrorMessage:
-                        botVKSentErrorMessage = False
-                except Exception as e:
-                    if botVKSentErrorMessage:
-                        pass
+                posts = posts.json()['response']['items']
+
+                for pnum in range(len(posts)):
+                    is_posted = _aloop.run_until_complete(db.fetchrow(
+                        'SELECT post_id FROM posts WHERE chat_id = $1 AND community_id = $2 AND post_id = $3;',
+                        int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
+                    ))
+                    print(is_posted)
+
+                    if is_posted:
+                        break
                     else:
-                        bot.send_message(config.botChannelID, "❗*Что-то пошло не так при получении публикаций "
-                                                              "с помощью VK API. Следующий запрос к VK API для "
-                                                              "получения последних постов из сообществ будет "
-                                                              "произведен через 15 минут. В случае решения данной "
-                                                              "проблемы, сообщение просто будет удалено.*",
-                                         parse_mode="Markdown", disable_notification=True)
-                        botVKSentErrorMessage = True
+                        _aloop.run_until_complete(db.execute(
+                            'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
+                            'RETURNING "chat_id", "community_id", "post_id";',
+                            int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
+                        ))
 
-                    print("VK Exception Handling: An error has occurred: " + str(e) + ". Next request to VK API in "
-                                                                                      "15 minutes.")
-                    time.sleep(900)
-
-                # noinspection PyUnboundLocalVariable
-                for num in range(posts_count):
-                    # noinspection PyBroadException
-                    try:
-                        # noinspection PyStatementEffect
-                        posts['response']['items'][num]['attachments'][0]
-                        attachments = True
-                    except:
-                        attachments = False
-
-                    # print(int(int(time.time()) - posts['response']['items'][num]['date']))
-                    if int(int(time.time()) - posts['response']['items'][num]['date']) <= 2700:
-                        if "{0}_{1}".format(
-                            posts['response']['groups'][0]['id'],
-                            posts['response']['items'][num]['id']
-                        ) in sentPosts:
+                        # VK URL Parsing
+                        post_text = posts['response']['items'][num]['text']
+                        try:
+                            post_text_part = post_text.partition('[')[-1].rpartition(']')[0]
+                            post_text_splitted = post_text_part.split("|")
+                            post_text_md = "[" + str(post_text_splitted[1]) + "]" + \
+                                           "(https://vk.com/" + str(post_text_splitted[0]) + ")"
+                            post_text = post_text.replace("[" + post_text_part + "]", post_text_md)
+                        except:
                             pass
+
+                        # Hashtags Removing
+                        try:
+                            post_text_stripping = post_text
+                            text = {tag.strip("#") for tag in post_text_stripping.split() if tag.startswith("#")}
+                            text = list(text)
+                            for it in text:
+                                _t = "#" + it
+                                post_text = post_text.replace(_t, "")
+                        except:
+                            pass
+
+                        if attachments:
+                            bot.send_message(config.botChannelID,
+                                             "[Новая публикация в сообществе " + posts['response']['groups'][0]
+                                             ['name'] + " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
+                                             "\n\n\n{3}"
+                                             "\n\n\n❗️К данной публикации что-то прикреплено, "
+                                             "[перейдите на этот пост во ВКонтакте]"
+                                             "(https://vk.com/{0}?w=wall-{1}_{2}) для его корректного и "
+                                             "полного отображения."
+                                             "\n\n🕒 _Время публикации: {4}_"
+                                             "\n👁 _Просмотров: {5}_"
+                                             "\n👍 _Лайков: {6}_"
+                                             "\n📎 _Комментариев: {7}_"
+                                             .format(posts['response']['groups'][0]['screen_name'],
+                                                     posts['response']['groups'][0]['id'],
+                                                     posts['response']['items'][num]['id'],
+                                                     post_text,
+                                                     datetime.datetime.fromtimestamp(
+                                                         int(posts['response']['items'][num]['date'])
+                                                     ).strftime("%H:%M"),
+                                                     posts['response']['items'][num]['views']['count'],
+                                                     posts['response']['items'][num]['likes']['count'],
+                                                     posts['response']['items'][num]['comments']['count']
+                                                     ),
+                                             parse_mode="Markdown")
                         else:
-                            print("group: " + str(posts['response']['groups'][0]['id']))
-                            print("posts: " + str(posts['response']['items'][num]['id']))
-                            sentPosts.append("{0}_{1}".format(
-                                posts['response']['groups'][0]['id'],
-                                posts['response']['items'][num]['id']
-                            ))
-                            print("sentPosts.append: " + str(sentPosts))
-
-                            post_text = posts['response']['items'][num]['text']
-                            try:
-                                post_text_part = post_text.partition('[')[-1].rpartition(']')[0]
-                                post_text_splitted = post_text_part.split("|")
-                                post_text_md = "[" + str(post_text_splitted[1]) + "]" + \
-                                               "(https://vk.com/" + str(post_text_splitted[0]) + ")"
-                                post_text = post_text.replace("[" + post_text_part + "]", post_text_md)
-                            except:
-                                pass
-
-                            try:
-                                post_text_stripping = post_text
-                                text = {tag.strip("#") for tag in post_text_stripping.split() if tag.startswith("#")}
-                                text = list(text)
-                                for it in text:
-                                    _t = "#" + it
-                                    post_text = post_text.replace(_t, "")
-                            except:
-                                pass
-
-                            if attachments:
-                                bot.send_message(config.botChannelID,
-                                                 "[Новая публикация в сообществе " + posts['response']['groups'][0]
-                                                 ['name'] + " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
-                                                 "\n\n\n{3}"
-                                                 "\n\n\n❗️К данной публикации что-то прикреплено, "
-                                                 "[перейдите на этот пост во ВКонтакте]"
-                                                 "(https://vk.com/{0}?w=wall-{1}_{2}) для его корректного и "
-                                                 "полного отображения."
-                                                 "\n\n🕒 _Время публикации: {4}_"
-                                                 "\n👁 _Просмотров: {5}_"
-                                                 "\n👍 _Лайков: {6}_"
-                                                 "\n📎 _Комментариев: {7}_"
-                                                 .format(posts['response']['groups'][0]['screen_name'],
-                                                         posts['response']['groups'][0]['id'],
-                                                         posts['response']['items'][num]['id'],
-                                                         post_text,
-                                                         datetime.datetime.fromtimestamp(
-                                                             int(posts['response']['items'][num]['date'])
-                                                         ).strftime("%H:%M"),
-                                                         posts['response']['items'][num]['views']['count'],
-                                                         posts['response']['items'][num]['likes']['count'],
-                                                         posts['response']['items'][num]['comments']['count']
-                                                         ),
-                                                 parse_mode="Markdown")
-                            else:
-                                bot.send_message(config.botChannelID,
-                                                 "[Новая публикация в сообществе " + posts['response']['groups'][0]
-                                                 ['name'] + " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
-                                                 "\n\n\n{3}"
-                                                 "\n\n🕒 _Время публикации: {4}_"
-                                                 "\n👁 _Просмотров: {5}_"
-                                                 "\n👍 _Лайков: {6}_"
-                                                 "\n📎 _Комментариев: {7}_"
-                                                 .format(posts['response']['groups'][0]['screen_name'],
-                                                         posts['response']['groups'][0]['id'],
-                                                         posts['response']['items'][num]['id'],
-                                                         post_text,
-                                                         datetime.datetime.fromtimestamp(
-                                                             int(posts['response']['items'][num]['date'])
-                                                         ).strftime("%H:%M"),
-                                                         posts['response']['items'][num]['views']['count'],
-                                                         posts['response']['items'][num]['likes']['count'],
-                                                         posts['response']['items'][num]['comments']['count']
-                                                         ),
-                                                 parse_mode="Markdown")
-                time.sleep(1.25)
-            time.sleep(600)
+                            bot.send_message(config.botChannelID,
+                                             "[Новая публикация в сообществе " + posts['response']['groups'][0]
+                                             ['name'] + " во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})"
+                                             "\n\n\n{3}"
+                                             "\n\n🕒 _Время публикации: {4}_"
+                                             "\n👁 _Просмотров: {5}_"
+                                             "\n👍 _Лайков: {6}_"
+                                             "\n📎 _Комментариев: {7}_"
+                                             .format(posts['response']['groups'][0]['screen_name'],
+                                                     posts['response']['groups'][0]['id'],
+                                                     posts['response']['items'][num]['id'],
+                                                     post_text,
+                                                     datetime.datetime.fromtimestamp(
+                                                         int(posts['response']['items'][num]['date'])
+                                                     ).strftime("%H:%M"),
+                                                     posts['response']['items'][num]['views']['count'],
+                                                     posts['response']['items'][num]['likes']['count'],
+                                                     posts['response']['items'][num]['comments']['count']
+                                                     ),
+                                             parse_mode="Markdown")
         except Exception as e:
-            print("Bot Exception Handling: An error has occurred: " + str(e) + ".")
-"""
+            print("An unexpected error was occurred while calling the method:\n" +
+                  str(type(e).__name__) + ': ' + str(e) + ".")
+        """
+
 
 try:
-    bot.polling(none_stop=True)
+    cPolling = threading.Thread(target=channelPolling)
+    cPolling.setDaemon(True)
+    cPolling.start()
+
+    # noinspection PyArgumentList
+    bPolling = threading.Thread(target=bot.polling, kwargs={'none_stop': True})
+    bPolling.setDaemon(True)
+    bPolling.start()
+
+    print(bot.get_me())
+
+    try:
+        while True:
+            print(threading.enumerate())
+            time.sleep(0.1)
+    except:
+        pass
 except Exception as e:
     print("An unexpected error was occurred while calling the method:\n" +
           str(type(e).__name__) + ': ' + str(e) + ".")
