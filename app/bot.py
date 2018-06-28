@@ -18,7 +18,7 @@ import asyncio
 import asyncpg
 import ast
 import re
-import operator
+from operator import itemgetter
 
 
 # noinspection PyPep8Naming
@@ -460,8 +460,7 @@ def initiatechannel(message):
                 return
 
             try:
-                pinned_post = config.channelDescription + "\n\n\n\n" + str(community['description'])
-                pin_id = bot.send_message(channel_id, pinned_post)
+                pin_id = bot.send_message(channel_id, str(community['description']))
                 bot.pin_chat_message(channel_id, pin_id.json['message_id'])
             except:
                 bot.send_message(user_id,
@@ -535,14 +534,14 @@ class channel:
                     posts = requests.post("https://api.vk.com/method/wall.get",
                                           data={
                                               "owner_id": str("-" + str(communities[num]['community_id'])),
-                                              "offset": 1,
-                                              "count": 1,
+                                              "count": 2,
                                               "filter": "all",
                                               "extended": 1,
                                               "access_token": vk_token,
                                               "v": "5.78"
                                           })
 
+                    posts_original = posts.json()['response']
                     posts = posts.json()['response']['items']
 
                     print(len(posts))
@@ -555,78 +554,99 @@ class channel:
                         print(is_posted)
 
                         if is_posted:
+                            continue
+
+                        try:
+                            if str(posts[pnum]['marked_as_ads']) == "1":
+                                continue
+                        except:
+                            pass
+
+                        try:
+                            if str(posts[pnum]['is_pinned']) == "1":
+                                print("BROKEN: " + str(pnum))
+                                continue
+                        except:
+                            pass
+
+                        print("FORWARD: " + str(pnum))
+
+                        loop.run_until_complete(db.execute(
+                            'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
+                            'RETURNING "chat_id", "community_id", "post_id";',
+                            int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
+                        ))
+
+                        """
+                        # VK URL Parsing
+                        post_text = posts['response']['items'][num]['text']
+                        try:
+                            post_text_part = post_text.partition('[')[-1].rpartition(']')[0]
+                            post_text_splitted = post_text_part.split("|")
+                            post_text_md = "[" + str(post_text_splitted[1]) + "]" + \
+                                           "(https://vk.com/" + str(post_text_splitted[0]) + ")"
+                            post_text = post_text.replace("[" + post_text_part + "]", post_text_md)
+                        except:
+                            pass
+
+                        # Hashtags Removing
+                        try:
+                            post_text_stripping = post_text
+                            text = {tag.strip("#") for tag in post_text_stripping.split() if tag.startswith("#")}
+                            text = list(text)
+                            for it in text:
+                                _t = "#" + it
+                                post_text = post_text.replace(_t, "")
+                        except:
+                            pass
+                        
+                        "\n\n\n❗️К данной публикации что-то прикреплено, "
+                                         "[перейдите на этот пост во ВКонтакте]"
+                                         "(https://vk.com/{0}?w=wall-{1}_{2}) для его корректного и "
+                                         "полного отображения."
+                        posts['response']['groups'][0]['screen_name'], posts['response']['groups'][0]['id'], 
+                        posts['response']['items'][num]['id']
+                        
+                        img1 = 'https://i.imgur.com/CjXjcnU.png'
+                        img2 = 'https://i.imgur.com/CjXjcnU.png'
+                        medias = [types.InputMediaPhoto(img1), types.InputMediaPhoto(img2)]
+                        bot.send_media_group(message.from_user.id, medias)
+                        """
+
+                        try:
+                            # noinspection PyStatementEffect
+                            posts[pnum]['attachments']
+                            media = []
                             for anum in range(len(posts[pnum]['attachments'])):
                                 if posts[pnum]['attachments'][anum]['type'] == "photo":
-                                    print("SIZES ERR")
-                                    print(posts[pnum]['attachments'][anum]['photo']['sizes'])
-                                    sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'].items(),
-                                                          key=operator.itemgetter(1))
-                                    print(sorted_sizes)
-                        else:
-                            loop.run_until_complete(db.execute(
-                                'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
-                                'RETURNING "chat_id", "community_id", "post_id";',
-                                int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
-                            ))
+                                    sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'],
+                                                          key=itemgetter('width'))
+                                    media.extend([types.InputMediaPhoto(sorted_sizes[-1]['url'])])
+                            print(media)
+                        except:
+                            media = None
+                            pass
 
-                            """
-                            # VK URL Parsing
-                            post_text = posts['response']['items'][num]['text']
-                            try:
-                                post_text_part = post_text.partition('[')[-1].rpartition(']')[0]
-                                post_text_splitted = post_text_part.split("|")
-                                post_text_md = "[" + str(post_text_splitted[1]) + "]" + \
-                                               "(https://vk.com/" + str(post_text_splitted[0]) + ")"
-                                post_text = post_text.replace("[" + post_text_part + "]", post_text_md)
-                            except:
-                                pass
-
-                            # Hashtags Removing
-                            try:
-                                post_text_stripping = post_text
-                                text = {tag.strip("#") for tag in post_text_stripping.split() if tag.startswith("#")}
-                                text = list(text)
-                                for it in text:
-                                    _t = "#" + it
-                                    post_text = post_text.replace(_t, "")
-                            except:
-                                pass
-                            
-                            "\n\n\n❗️К данной публикации что-то прикреплено, "
-                                             "[перейдите на этот пост во ВКонтакте]"
-                                             "(https://vk.com/{0}?w=wall-{1}_{2}) для его корректного и "
-                                             "полного отображения."
-                            posts['response']['groups'][0]['screen_name'], posts['response']['groups'][0]['id'], 
-                            posts['response']['items'][num]['id']
-                            
-                            img1 = 'https://i.imgur.com/CjXjcnU.png'
-                            img2 = 'https://i.imgur.com/CjXjcnU.png'
-                            medias = [types.InputMediaPhoto(img1), types.InputMediaPhoto(img2)]
-                            bot.send_media_group(message.from_user.id, medias)
-                            """
-
-                            try:
-                                # noinspection PyStatementEffect
-                                posts[pnum]['attachments']
-                                for anum in range(len(posts[pnum]['attachments'])):
-                                    if posts[pnum]['attachments'][anum]['type'] == "photo":
-                                        sorted_sizes = sorted(posts[pnum]['attachments'][anum]['sizes'].items(),
-                                                              key=operator.itemgetter(1))
-                                        print(sorted_sizes)
-                            except:
-                                pass
-
-                            # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
-                            print(communities[num]['id'])
-                            bot.send_message(communities[num]['id'],
-                                             "{0}"
-                                             "\n\n\n🕒  Время публикации: {1}"
-                                             .format(
-                                                 channel.fix_markdown(posts[pnum]['text']),
-                                                 datetime.datetime.fromtimestamp(int(
-                                                     posts[pnum]['date'])).strftime("%H:%M")),
-                                             parse_mode="Markdown")
-                        time.sleep(1)
+                        # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
+                        print(communities[num]['id'])
+                        print("ORIGINAL: " + str(posts_original))
+                        formatted_text = "{0}" \
+                                         "\n\n\n🕒  Время публикации: {1}" \
+                                         "\n[Оригинальный пост во ВКонтакте.](https://vk.com/{2}?w=wall-{3}_{4})" \
+                                         .format(
+                                             channel.fix_markdown(posts[pnum]['text']),
+                                             datetime.datetime.fromtimestamp(int(
+                                                 posts[pnum]['date'])).strftime("%H:%M"),
+                                             posts_original['groups'][0]['screen_name'],
+                                             posts_original['groups'][0]['id'],
+                                             posts[pnum]['id']
+                        )
+                        formatted_message = bot.send_message(communities[num]['id'],
+                                                             formatted_text, parse_mode="Markdown")
+                        if media:
+                            bot.send_media_group(communities[num]['id'], media,
+                                                 reply_to_message_id=formatted_message.message_id)
+                        time.sleep(1.25)
                 time.sleep(900)
             except Exception as e:
                 print("An unexpected error was occurred while calling the method:\n" +
