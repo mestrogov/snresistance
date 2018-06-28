@@ -564,7 +564,6 @@ class channel:
 
                         try:
                             if str(posts[pnum]['is_pinned']) == "1":
-                                print("BROKEN: " + str(pnum))
                                 continue
                         except:
                             pass
@@ -630,19 +629,20 @@ class channel:
                         # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
                         print(communities[num]['id'])
                         print("ORIGINAL: " + str(posts_original))
-                        formatted_text = "{0}" \
-                                         "\n\n\n🕒  Время публикации: {1}" \
-                                         "\n[Оригинальный пост во ВКонтакте.](https://vk.com/{2}?w=wall-{3}_{4})" \
+
+                        formatted_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
+                                         "\n\n{3}" \
+                                         "\n\n🕒  Время публикации оригинального поста: {4}" \
                                          .format(
-                                             channel.fix_markdown(posts[pnum]['text']),
-                                             datetime.datetime.fromtimestamp(int(
-                                                 posts[pnum]['date'])).strftime("%H:%M"),
                                              posts_original['groups'][0]['screen_name'],
                                              posts_original['groups'][0]['id'],
-                                             posts[pnum]['id']
+                                             posts[pnum]['id'],
+                                             channel.fix_markdown(posts[pnum]['text']),
+                                             datetime.datetime.fromtimestamp(int(
+                                                 posts[pnum]['date'])).strftime("%H:%M")
                         )
-                        formatted_message = bot.send_message(communities[num]['id'],
-                                                             formatted_text, parse_mode="Markdown")
+                        formatted_message = bot.send_message(communities[num]['id'], formatted_text,
+                                                             disable_web_page_preview=True, parse_mode="Markdown")
                         if media:
                             bot.send_media_group(communities[num]['id'], media,
                                                  reply_to_message_id=formatted_message.message_id)
