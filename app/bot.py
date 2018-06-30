@@ -18,6 +18,7 @@ import asyncio
 import asyncpg
 import ast
 import re
+import logging
 from operator import itemgetter
 
 
@@ -418,6 +419,9 @@ def initiatechannel(message):
 
         if "!initiateChannel" in message.text:
             command = message.text.replace("!initiateChannel", "").strip().split("|")
+            if command[1].startswith("public"):
+                command[1] = command[1].replace("public", "club", 1)
+            print(command)
 
             user_id = int(command[0])
             print(user_id)
@@ -463,9 +467,12 @@ def initiatechannel(message):
                 pin_id = bot.send_message(channel_id, str(community['description']))
                 bot.pin_chat_message(channel_id, pin_id.json['message_id'])
             except:
+                pass
+                """
                 bot.send_message(user_id,
                                  "Не удалось отправить сообщение и закрепить его в канале.")
                 return
+                """
 
             try:
                 bot.set_chat_description(channel_id, "Тестовое описание, чтобы проверить права Бота.")
@@ -570,11 +577,13 @@ class channel:
 
                         print("FORWARD: " + str(pnum))
 
+                        """
                         loop.run_until_complete(db.execute(
                             'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
                             'RETURNING "chat_id", "community_id", "post_id";',
                             int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
                         ))
+                        """
 
                         """
                         # VK URL Parsing
@@ -615,20 +624,69 @@ class channel:
                         try:
                             # noinspection PyStatementEffect
                             posts[pnum]['attachments']
-                            media = []
+                            photos = []
+                            videos = []
                             for anum in range(len(posts[pnum]['attachments'])):
+                                print("attachments")
                                 if posts[pnum]['attachments'][anum]['type'] == "photo":
+                                    print("photo")
                                     sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'],
                                                           key=itemgetter('width'))
-                                    media.extend([types.InputMediaPhoto(sorted_sizes[-1]['url'])])
-                            print(media)
-                        except:
-                            media = None
-                            pass
+                                    photos.extend([types.InputMediaPhoto(sorted_sizes[-1]['url'])])
+                                elif posts[pnum]['attachments'][anum]['type'] == "video":
+                                    print("video")
+                                    video = requests.post("https://api.vk.com/method/video.get",
+                                                          data={
+                                                              "videos": str(
+                                                                  str(posts[pnum]['attachments'][anum]['video']
+                                                                      ['owner_id']) + "_" +
+                                                                  str(posts[pnum]['attachments'][anum]['video']['id'])
+                                                              ),
+                                                              "extended": 1,
+                                                              "access_token": vk_token,
+                                                              "v": "5.80"
+                                                          }).json()['response']
+                                    video_original = video
+                                    video = video['items'][0]
+
+                                    try:
+                                        video_platform = str(video['platform'])
+                                    except:
+                                        video_platform = "VK"
+
+                                    if video_platform == "VK":
+                                        video_url = "https://vk.com/{0}?z=video{1}_{2}".format(
+                                            str(video_original['groups'][0]['screen_name']),
+                                            str(video['owner_id']),
+                                            str(video['id'])
+                                        )
+                                    elif video_platform == "YouTube":
+                                        video_url = "https://www.youtube.com/watch?v={0}".format(
+                                            str(video['player']).split("/embed/")[1].split("?__ref")[0].strip()
+                                        )
+                                    else:
+                                        video_url = str(video['player']).split("?__ref")[0].strip()
+
+                                    print(video_platform + " : " + video_url)
+                                    """
+                                    Когда исправят отображение external в API
+                                    else:
+                                        video_url = str(video['files']['external'])
+                                    """
+
+                                    videos.extend([{"url": video_url, "title": str(video['title']),
+                                                    "duration": str(video['duration'])}])
+                                time.sleep(1.25)
+                        except Exception as e:
+                            logging.exception('Got exception')
+                            photos = None
+                            videos = None
 
                         # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
                         print(communities[num]['id'])
-                        print("ORIGINAL: " + str(posts_original))
+                        # print("ORIGINAL: " + str(posts_original))
+                        print(photos)
+                        print(videos)
 
                         formatted_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                          "\n\n{3}" \
@@ -639,12 +697,11 @@ class channel:
                                              posts[pnum]['id'],
                                              channel.fix_markdown(posts[pnum]['text']),
                                              datetime.datetime.fromtimestamp(int(
-                                                 posts[pnum]['date'])).strftime("%H:%M")
-                        )
+                                                 posts[pnum]['date'])).strftime("%H:%M"))
                         formatted_message = bot.send_message(communities[num]['id'], formatted_text,
                                                              disable_web_page_preview=True, parse_mode="Markdown")
-                        if media:
-                            bot.send_media_group(communities[num]['id'], media,
+                        if photos:
+                            bot.send_media_group(communities[num]['id'], photos,
                                                  reply_to_message_id=formatted_message.message_id)
                         time.sleep(1.25)
                 time.sleep(900)
@@ -669,7 +726,7 @@ if __name__ == "__main__":
 
         try:
             while True:
-                pass
+                time.sleep(0.1)
         except:
             pass
     except Exception as e:
