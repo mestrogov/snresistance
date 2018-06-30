@@ -675,13 +675,12 @@ class channel:
                         except:
                             pass
 
-                        """
-                        loop.run_until_complete(db.execute(
-                            'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
-                            'RETURNING "chat_id", "community_id", "post_id";',
-                            int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
-                        ))
-                        """
+                        if not config.developerMode:
+                            loop.run_until_complete(db.execute(
+                                'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
+                                'RETURNING "chat_id", "community_id", "post_id";',
+                                int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
+                            ))
 
                         """
                         # VK URL Parsing
@@ -757,8 +756,6 @@ class channel:
                                             str(video['owner_id']), str(video['id'])
                                         )
 
-                                    print(video_platform + " : " + video_url)
-
                                     videos.extend([{"url": video_url, "platform": str(video_platform),
                                                     "title": str(video['title']), "duration": str(video['duration'])}])
                                 time.sleep(1.25)
@@ -769,18 +766,30 @@ class channel:
                                           exc_info=True)
 
                         # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
+                        markup = types.InlineKeyboardMarkup(row_width=5)
+                        markup.add(
+                            types.InlineKeyboardButton("🕒 {0}".format(
+                                str(datetime.datetime.fromtimestamp(int(posts[pnum]['date'])).strftime("%H:%M"))),
+                                callback_data="time"),
+                            types.InlineKeyboardButton("💖 {0}".format(
+                                str(posts[pnum]['likes']['count'])), callback_data="likes"),
+                            types.InlineKeyboardButton("💬 {0}".format(
+                                str(posts[pnum]['comments']['count'])), callback_data="comments"),
+                            types.InlineKeyboardButton("🔁 {0}".format(
+                                str(posts[pnum]['reposts']['count'])), callback_data="reposts"),
+                            types.InlineKeyboardButton("👁️ {0}".format(
+                                str(posts[pnum]['views']['count'])), callback_data="views"),
+                            types.InlineKeyboardButton("Обновить показатели", callback_data="refresh"))
                         formatted_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                          "\n\n{3}" \
-                                         "\n\n🕒  Время публикации оригинального поста: {4}" \
                                          .format(
                                              posts_original['groups'][0]['screen_name'],
                                              posts_original['groups'][0]['id'],
                                              posts[pnum]['id'],
-                                             channel.fix_markdown(posts[pnum]['text']),
-                                             datetime.datetime.fromtimestamp(int(
-                                                 posts[pnum]['date'])).strftime("%H:%M"))
+                                             channel.fix_markdown(posts[pnum]['text']))
                         formatted_message = bot.send_message(communities[num]['id'], formatted_text,
-                                                             disable_web_page_preview=True, parse_mode="Markdown")
+                                                             disable_web_page_preview=True, reply_markup=markup,
+                                                             parse_mode="Markdown")
                         if photos:
                             bot.send_media_group(communities[num]['id'], photos,
                                                  reply_to_message_id=formatted_message.message_id)
