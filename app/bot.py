@@ -93,7 +93,7 @@ class db:
 
     @classmethod
     async def execute(cls, *args):
-        logging.debug("Passed arguments: " + str(*args))
+        logging.debug("Passed arguments: " + str(args))
         try:
             psql_connection = await asyncpg.connect(host=config.databaseHost,
                                                     database=config.databaseName,
@@ -109,7 +109,7 @@ class db:
 
     @classmethod
     async def fetch(cls, *args):
-        logging.debug("Passed arguments: " + str(*args))
+        logging.debug("Passed arguments: " + str(args))
         try:
             psql_connection = await asyncpg.connect(host=config.databaseHost,
                                                     database=config.databaseName,
@@ -126,7 +126,7 @@ class db:
 
     @classmethod
     async def fetchrow(cls, *args):
-        logging.debug("Passed arguments: " + str(*args))
+        logging.debug("Passed arguments: " + str(args))
         try:
             psql_connection = await asyncpg.connect(host=config.databaseHost,
                                                     database=config.databaseName,
@@ -146,10 +146,12 @@ class db:
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query_handler(call):
     try:
-        logging.debug("Passed call argument: " + str(call))
+        logging.debug("Passed argument: " + str(call))
+
         thread = threading.Thread(target=callback_query, args=(call,))
         thread.setDaemon(True)
         thread.start()
+
         logging.debug("Thread " + str(thread) + " has been started.")
     except Exception as e:
         logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
@@ -183,7 +185,7 @@ def callback_query(call):
                     parse_mode="Markdown", chat_id=call.from_user.id, message_id=call.message.message_id
                 )
             elif call.data == "start_menu_next":
-                print("OK")
+                logging.warning("The temporary stub for callback with start_menu_next data.")
             bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
     except Exception as e:
         try:
@@ -198,17 +200,24 @@ def callback_query(call):
         return e
 
 
+# noinspection PyTypeChecker
 @bot.message_handler(commands=['start'])
 def command_start_handler(message):
-    thread = threading.Thread(target=command_start, args=(message,))
-    thread.setDaemon(True)
-    thread.start()
+    try:
+        logging.debug("Passed argument: " + str(message))
+
+        thread = threading.Thread(target=command_start, args=(message,))
+        thread.setDaemon(True)
+        thread.start()
+
+        logging.debug("Thread " + str(thread) + " has been started.")
+    except Exception as e:
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 def command_start(message):
     try:
-        print(message)
-
         if "ru" not in message.from_user.language_code:
             bot.send_message(message.from_user.id,
                              "❗  *Unfortunately, the bot doesn't speak your language. So if you are "
@@ -235,12 +244,14 @@ def command_start(message):
         except:
             pass
 
-        print("An unexpected error was occurred while calling the method:\n" +
-              str(type(e).__name__) + ': ' + str(e) + ".")
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 def menu_start(message):
     try:
+        logging.debug("Passed argument: " + str(message))
+
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(
             types.InlineKeyboardButton("Импортировать все мои сообщества", callback_data="start_vk_import"),
@@ -259,15 +270,24 @@ def menu_start(message):
         except:
             pass
 
-        print("An unexpected error was occurred while calling the method:\n" +
-              str(type(e).__name__) + ': ' + str(e) + ".")
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
+# noinspection PyTypeChecker
 @bot.message_handler(commands=['debug'])
 def command_debug_handler(message):
-    thread = threading.Thread(target=command_debug, args=(message,))
-    thread.setDaemon(True)
-    thread.start()
+    try:
+        logging.debug("Passed argument: " + str(message))
+
+        thread = threading.Thread(target=command_debug, args=(message,))
+        thread.setDaemon(True)
+        thread.start()
+
+        logging.debug("Thread " + str(thread) + " has been started.")
+    except Exception as e:
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 def command_debug(message):
@@ -307,15 +327,24 @@ def command_debug(message):
         except:
             pass
 
-        print("An unexpected error was occurred while calling the method:\n" +
-              str(type(e).__name__) + ': ' + str(e) + ".")
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
+# noinspection PyTypeChecker
 @bot.message_handler(commands=['add', 'subscribe', 'sub'])
 def command_add_handler(message):
-    thread = threading.Thread(target=command_add, args=(message,))
-    thread.setDaemon(True)
-    thread.start()
+    try:
+        logging.debug("Passed argument: " + str(message))
+
+        thread = threading.Thread(target=command_add, args=(message,))
+        thread.setDaemon(True)
+        thread.start()
+
+        logging.debug("Thread " + str(thread) + " has been started.")
+    except Exception as e:
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 def command_add(message):
@@ -328,7 +357,7 @@ def command_add(message):
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
-        print(communities_old)
+        # print(communities_old)
         if communities_old:
             communities_old = ast.literal_eval(communities_old)
             for elm in communities_old:
@@ -363,15 +392,24 @@ def command_add(message):
         except:
             pass
 
-        print("An unexpected error was occurred while calling the method:\n" +
-              str(type(e).__name__) + ': ' + str(e) + ".")
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
+# noinspection PyTypeChecker
 @bot.message_handler(commands=['remove', 'unsubscribe', 'unsub'])
 def command_remove_handler(message):
-    thread = threading.Thread(target=command_remove, args=(message,))
-    thread.setDaemon(True)
-    thread.start()
+    try:
+        logging.debug("Passed argument: " + str(message))
+
+        thread = threading.Thread(target=command_remove, args=(message,))
+        thread.setDaemon(True)
+        thread.start()
+
+        logging.debug("Thread " + str(thread) + " has been started.")
+    except Exception as e:
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 def command_remove(message):
@@ -384,7 +422,7 @@ def command_remove(message):
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
-        print(communities_db)
+        # print(communities_db)
         if communities_db:
             communities_db = ast.literal_eval(communities_db)
             for elm in communities_db:
@@ -419,15 +457,24 @@ def command_remove(message):
         except:
             pass
 
-        print("An unexpected error was occurred while calling the method:\n" +
-              str(type(e).__name__) + ': ' + str(e) + ".")
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
+# noinspection PyTypeChecker
 @bot.message_handler(commands=['addchannel'])
 def command_addchannel_handler(message):
-    thread = threading.Thread(target=command_addchannel, args=(message,))
-    thread.setDaemon(True)
-    thread.start()
+    try:
+        logging.debug("Passed argument: " + str(message))
+
+        thread = threading.Thread(target=command_addchannel, args=(message,))
+        thread.setDaemon(True)
+        thread.start()
+
+        logging.debug("Thread " + str(thread) + " has been started.")
+    except Exception as e:
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 def command_addchannel(message):
@@ -450,15 +497,23 @@ def command_addchannel(message):
         except:
             pass
 
-        print("An unexpected error was occurred while calling the method:\n" +
-              str(type(e).__name__) + ': ' + str(e) + ".")
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 @bot.channel_post_handler()
 def command_initiatechannel_handler(message):
-    thread = threading.Thread(target=initiatechannel, args=(message,))
-    thread.setDaemon(True)
-    thread.start()
+    try:
+        logging.debug("Passed argument: " + str(message))
+
+        thread = threading.Thread(target=initiatechannel, args=(message,))
+        thread.setDaemon(True)
+        thread.start()
+
+        logging.debug("Thread " + str(thread) + " has been started.")
+    except Exception as e:
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 def initiatechannel(message):
@@ -474,15 +529,12 @@ def initiatechannel(message):
             command = message.text.replace("!initiateChannel", "").strip().split("|")
             if command[1].startswith("public"):
                 command[1] = command[1].replace("public", "club", 1)
-            print(command)
 
             user_id = int(command[0])
-            print(user_id)
             user_vktoken = loop.run_until_complete(db.fetchrow(
                 'SELECT vk_token FROM users WHERE id = $1;',
                 int(user_id)
             ))['vk_token']
-            print(user_vktoken)
 
             community = requests.post("https://api.vk.com/method/groups.getById",
                                       data={
@@ -491,7 +543,6 @@ def initiatechannel(message):
                                           "access_token": str(user_vktoken),
                                           "v": "5.78"
                                       }).json()['response'][0]
-            print(community)
 
             channel_id = message.chat.id
             initiation_date = calendar.timegm(datetime.datetime.utcnow().utctimetuple())
@@ -553,8 +604,8 @@ def initiatechannel(message):
         except:
             pass
 
-        print("An unexpected error was occurred while calling the method:\n" +
-              str(type(e).__name__) + ': ' + str(e) + ".")
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 # noinspection PyPep8Naming
@@ -581,7 +632,6 @@ class channel:
                 communities = loop.run_until_complete(db.fetch(
                     'SELECT id, owner_id, community_id FROM channels;',
                 ))
-                print(communities)
 
                 time.sleep(1)
 
@@ -604,14 +654,11 @@ class channel:
                     posts_original = posts.json()['response']
                     posts = posts.json()['response']['items']
 
-                    print(len(posts))
                     for pnum in range(len(posts)):
-                        print("ENTERED")
                         is_posted = loop.run_until_complete(db.fetchrow(
                             'SELECT post_id FROM posts WHERE chat_id = $1 AND community_id = $2 AND post_id = $3;',
                             int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
                         ))
-                        print(is_posted)
 
                         if is_posted:
                             continue
@@ -627,8 +674,6 @@ class channel:
                                 continue
                         except:
                             pass
-
-                        print("FORWARD: " + str(pnum))
 
                         """
                         loop.run_until_complete(db.execute(
@@ -680,9 +725,7 @@ class channel:
                             photos = []
                             videos = []
                             for anum in range(len(posts[pnum]['attachments'])):
-                                print("attachments")
                                 if posts[pnum]['attachments'][anum]['type'] == "photo":
-                                    print("photo")
                                     sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'],
                                                           key=itemgetter('width'))
                                     photos.extend([types.InputMediaPhoto(sorted_sizes[-1]['url'])])
@@ -722,14 +765,10 @@ class channel:
                         except Exception as e:
                             photos = None
                             videos = None
-                            logging.exception('Got exception')
+                            logging.error("Exception has been occurred while trying to execute the method.",
+                                          exc_info=True)
 
                         # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
-                        print(communities[num]['id'])
-                        # print("ORIGINAL: " + str(posts_original))
-                        print(photos)
-                        print(videos)
-
                         formatted_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                          "\n\n{3}" \
                                          "\n\n🕒  Время публикации оригинального поста: {4}" \
@@ -748,8 +787,8 @@ class channel:
                         time.sleep(1.25)
                 time.sleep(900)
             except Exception as e:
-                print("An unexpected error was occurred while calling the method:\n" +
-                      str(type(e).__name__) + ': ' + str(e) + ".")
+                logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+                return e
 
 
 if __name__ == "__main__":
@@ -757,6 +796,7 @@ if __name__ == "__main__":
         asyncio.get_event_loop().run_until_complete(db.connection())
         logging.debug("Bot Settings: " + str(bot.get_me()))
 
+        # noinspection PyTypeChecker
         cPolling = threading.Thread(target=channel.Polling)
         cPolling.setDaemon(True)
         cPolling.start()
@@ -772,4 +812,4 @@ if __name__ == "__main__":
         except:
             pass
     except Exception as e:
-        logging.critical("Exception while trying to start the primary parts of the application.", exc_info=True)
+        logging.critical("Exception has been occurred while trying to run the application.", exc_info=True)
