@@ -22,89 +22,142 @@ import logging
 from operator import itemgetter
 
 
+try:
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    logging.addLevelName(logging.DEBUG, '\x1b[32m%s\x1b[0m' % logging.getLevelName(logging.DEBUG))
+    logging.addLevelName(logging.INFO, '\x1b[34m%s\x1b[0m' % logging.getLevelName(logging.INFO))
+    logging.addLevelName(logging.WARNING, '\x1b[33m%s\x1b[0m' % logging.getLevelName(logging.WARNING))
+    logging.addLevelName(logging.ERROR, '\x1b[31m%s\x1b[0m' % logging.getLevelName(logging.ERROR))
+    logging.addLevelName(logging.CRITICAL, '\x1b[31;1m%s\x1b[0m' % logging.getLevelName(logging.CRITICAL))
+
+    if config.developerMode:
+        formatter = logging.Formatter('%(threadName)s/%(filename)s:%(lineno)d/%(funcName)s() | %(asctime)s | '
+                                      '%(levelname)s  >  %(message)s', '%d.%m.%y, %H:%M:%S')
+    else:
+        formatter = logging.Formatter('%(asctime)s | %(levelname)s  >  %(message)s',
+                                      '%d.%m.%y, %H:%M:%S')
+
+    fileHandler = logging.FileHandler("latest.log")
+    fileHandler.setLevel(logging.INFO)
+    fileHandler.setFormatter(formatter)
+    logger.addHandler(fileHandler)
+
+    consoleHandler = logging.StreamHandler()
+    if config.developerMode:
+        consoleHandler.setLevel(logging.DEBUG)
+    else:
+        consoleHandler.setLevel(logging.INFO)
+    consoleHandler.setFormatter(formatter)
+    logger.addHandler(consoleHandler)
+
+    if config.developerMode:
+        ignoredModulesLoggers = []
+        # noinspection PyUnresolvedReferences
+        for logger in logging.Logger.manager.loggerDict:
+            ignoredModulesLoggers.extend([logger])
+            logging.getLogger(logger).setLevel(logging.WARNING)
+        logging.debug("Ignoring these Modules' Loggers: " + str(ignoredModulesLoggers) + '.')
+except:
+    logging.critical("Exception has been occurred while trying to set up logging settings.", exc_info=True)
+
+
+try:
+    bot = telebot.TeleBot(config.botToken)
+
+    botVKSentErrorMessage = None
+    sentPosts = []
+except:
+    logging.critical("Exception has been occurred while trying to set up bot settings.", exc_info=True)
+
+
 # noinspection PyPep8Naming
 class db:
     @staticmethod
     async def connection():
         try:
-            postgresql_connection = await asyncpg.connect(host=config.databaseHost,
-                                                          database=config.databaseName,
-                                                          user=config.databaseUsername,
-                                                          port=config.databasePort)
+            psql_connection = await asyncpg.connect(host=config.databaseHost,
+                                                    database=config.databaseName,
+                                                    user=config.databaseUsername,
+                                                    port=config.databasePort)
 
-            print('The connection to PostgreSQL can be established successfully.')
+            logging.info("The connection to the PostgreSQL can be established successfully.")
 
-            await postgresql_connection.close()
+            await psql_connection.close()
+            return "OK"
         except Exception as e:
-            print("An unexpected error was occurred while calling the method:\n" +
-                  str(type(e).__name__) + ': ' + str(e) + ".")
+            logging.error("Exception has been occurred while trying to establish connection to "
+                          "PostgreSQL.", exc_info=True)
+            return e
 
     @classmethod
     async def execute(cls, *args):
-        print(*args)
+        logging.debug("Passed arguments: " + str(*args))
         try:
-            postgresql_connection = await asyncpg.connect(host=config.databaseHost,
-                                                          database=config.databaseName,
-                                                          user=config.databaseUsername,
-                                                          port=config.databasePort)
+            psql_connection = await asyncpg.connect(host=config.databaseHost,
+                                                    database=config.databaseName,
+                                                    user=config.databaseUsername,
+                                                    port=config.databasePort)
 
-            await postgresql_connection.execute(*args)
-            await postgresql_connection.close()
+            await psql_connection.execute(*args)
+            await psql_connection.close()
+            return "OK"
         except Exception as e:
-            print("An unexpected error was occurred while calling the method:\n" +
-                  str(type(e).__name__) + ': ' + str(e) + ".")
+            logging.error("Exception has been occurred while trying to execute SQL statement.", exc_info=True)
+            return e
 
     @classmethod
     async def fetch(cls, *args):
+        logging.debug("Passed arguments: " + str(*args))
         try:
-            postgresql_connection = await asyncpg.connect(host=config.databaseHost,
-                                                          database=config.databaseName,
-                                                          user=config.databaseUsername,
-                                                          port=config.databasePort)
+            psql_connection = await asyncpg.connect(host=config.databaseHost,
+                                                    database=config.databaseName,
+                                                    user=config.databaseUsername,
+                                                    port=config.databasePort)
 
-            result = await postgresql_connection.fetch(*args)
-            await postgresql_connection.close()
-
+            result = await psql_connection.fetch(*args)
+            await psql_connection.close()
             # The result can be parsed by using: result[0]['COLUMN']
             return result
         except Exception as e:
-            print("An unexpected error was occurred while calling the method:\n" +
-                  str(type(e).__name__) + ': ' + str(e) + ".")
+            logging.error("Exception has been occurred while trying to fetch data from PostgreSQL.", exc_info=True)
+            return e
 
     @classmethod
     async def fetchrow(cls, *args):
+        logging.debug("Passed arguments: " + str(*args))
         try:
-            postgresql_connection = await asyncpg.connect(host=config.databaseHost,
-                                                          database=config.databaseName,
-                                                          user=config.databaseUsername,
-                                                          port=config.databasePort)
+            psql_connection = await asyncpg.connect(host=config.databaseHost,
+                                                    database=config.databaseName,
+                                                    user=config.databaseUsername,
+                                                    port=config.databasePort)
 
-            result = await postgresql_connection.fetchrow(*args)
-            await postgresql_connection.close()
-
+            result = await psql_connection.fetchrow(*args)
+            await psql_connection.close()
             return result
         except Exception as e:
-            print("An unexpected error was occurred while calling the method:\n" +
-                  str(type(e).__name__) + ': ' + str(e) + ".")
+            logging.error("Exception has been occurred while trying to fetch row of data "
+                          "from PostgreSQL.", exc_info=True)
+            return e
 
 
-bot = telebot.TeleBot(config.botToken)
-
-botVKSentErrorMessage = None
-sentPosts = []
-
-
+# noinspection PyTypeChecker
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query_handler(call):
-    thread = threading.Thread(target=callback_query, args=(call,))
-    thread.setDaemon(True)
-    thread.start()
+    try:
+        logging.debug("Passed call argument: " + str(call))
+        thread = threading.Thread(target=callback_query, args=(call,))
+        thread.setDaemon(True)
+        thread.start()
+        logging.debug("Thread " + str(thread) + " has been started.")
+    except Exception as e:
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 def callback_query(call):
     try:
-        print(call)
-
         if call.message:
             if call.data == "exit_to_start_menu":
                 bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
@@ -141,8 +194,8 @@ def callback_query(call):
         except:
             pass
 
-        print("An unexpected error was occurred while calling the method:\n" +
-              str(type(e).__name__) + ': ' + str(e) + ".")
+        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        return e
 
 
 @bot.message_handler(commands=['start'])
@@ -634,7 +687,6 @@ class channel:
                                                           key=itemgetter('width'))
                                     photos.extend([types.InputMediaPhoto(sorted_sizes[-1]['url'])])
                                 elif posts[pnum]['attachments'][anum]['type'] == "video":
-                                    print("video")
                                     video = requests.post("https://api.vk.com/method/video.get",
                                                           data={
                                                               "videos": str(
@@ -646,7 +698,6 @@ class channel:
                                                               "access_token": vk_token,
                                                               "v": "5.80"
                                                           }).json()['response']
-                                    video_original = video
                                     video = video['items'][0]
 
                                     try:
@@ -654,33 +705,24 @@ class channel:
                                     except:
                                         video_platform = "VK"
 
-                                    if video_platform == "VK":
-                                        video_url = "https://vk.com/{0}?z=video{1}_{2}".format(
-                                            str(video_original['groups'][0]['screen_name']),
-                                            str(video['owner_id']),
-                                            str(video['id'])
-                                        )
-                                    elif video_platform == "YouTube":
+                                    if video_platform == "YouTube":
                                         video_url = "https://www.youtube.com/watch?v={0}".format(
-                                            str(video['player']).split("/embed/")[1].split("?__ref")[0].strip()
+                                            str(video['player']).split("/embed/", 1)[1].split("?__ref=", 1)[0].strip()
                                         )
                                     else:
-                                        video_url = str(video['player']).split("?__ref")[0].strip()
+                                        video_url = "https://vk.com/video{0}_{1}".format(
+                                            str(video['owner_id']), str(video['id'])
+                                        )
 
                                     print(video_platform + " : " + video_url)
-                                    """
-                                    Когда исправят отображение external в API
-                                    else:
-                                        video_url = str(video['files']['external'])
-                                    """
 
-                                    videos.extend([{"url": video_url, "title": str(video['title']),
-                                                    "duration": str(video['duration'])}])
+                                    videos.extend([{"url": video_url, "platform": str(video_platform),
+                                                    "title": str(video['title']), "duration": str(video['duration'])}])
                                 time.sleep(1.25)
                         except Exception as e:
-                            logging.exception('Got exception')
                             photos = None
                             videos = None
+                            logging.exception('Got exception')
 
                         # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
                         print(communities[num]['id'])
@@ -713,7 +755,7 @@ class channel:
 if __name__ == "__main__":
     try:
         asyncio.get_event_loop().run_until_complete(db.connection())
-        print(bot.get_me())
+        logging.debug("Bot Settings: " + str(bot.get_me()))
 
         cPolling = threading.Thread(target=channel.Polling)
         cPolling.setDaemon(True)
@@ -730,5 +772,4 @@ if __name__ == "__main__":
         except:
             pass
     except Exception as e:
-        print("An unexpected error was occurred while calling the method:\n" +
-              str(type(e).__name__) + ': ' + str(e) + ".")
+        logging.critical("Exception while trying to start the primary parts of the application.", exc_info=True)
