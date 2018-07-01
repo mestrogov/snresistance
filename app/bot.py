@@ -192,6 +192,9 @@ def callback_query_handler(call):
 
 def callback_query(call):
     try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
         if call.message:
             if call.data == "exit_to_start_menu":
                 bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
@@ -218,11 +221,76 @@ def callback_query(call):
                 )
             elif call.data == "start_menu_next":
                 logging.warning("The temporary stub for callback with start_menu_next data.")
+            elif call.data.startswith("channel_counters_"):
+                data_splitted = call.data.replace("channel_counters_", "", 1).split("|")
+
+                cached = loop.run_until_complete(
+                    Redis.execute("EXISTS", "channel_counters|{0}".format(str(data_splitted[1]))))
+                cached = int(cached)
+                if cached:
+                    counters_data_splitted = loop.run_until_complete(Redis.execute("GET", "channel_counters|{0}".format(
+                        str(data_splitted[1])
+                    ))).split("_")
+                else:
+                    owner_id = loop.run_until_complete(PSQL.fetchrow('SELECT owner_id FROM channels WHERE id = $1;',
+                                                                     int(call.message.json['chat']['id'])))['owner_id']
+                    token = loop.run_until_complete(PSQL.fetchrow(
+                        'SELECT vk_token FROM users WHERE id = $1;',
+                        int(owner_id)
+                    ))['vk_token']
+
+                    ids_data_splitted = data_splitted[1].split("_")
+                    post_counters = requests.post("https://api.vk.com/method/wall.getById",
+                                                  data={
+                                                      "posts": str(
+                                                          str(ids_data_splitted[1]) + "_" +
+                                                          str(ids_data_splitted[2])
+                                                      ),
+                                                      "copy_history_depth": 1,
+                                                      "extended": 1,
+                                                      "access_token": token,
+                                                      "v": "5.78"
+                                                  }).json()['response']['items'][0]
+                    counters_data_splitted = "{0}_{1}_{2}_{3}_{4}".format(
+                        str(post_counters['date']),
+                        str(post_counters['likes']['count']),
+                        str(post_counters['comments']['count']),
+                        str(post_counters['reposts']['count']),
+                        str(post_counters['views']['count'])
+                    ).split("_")
+
+                if data_splitted[0] == "time":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="🕒 Время публикации данного поста: {0} MSK.".format(
+                                                  str(datetime.datetime.fromtimestamp(
+                                                      int(counters_data_splitted[0])).strftime("%H:%M"))),
+                                              show_alert=True)
+                elif data_splitted[0] == "likes":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="💖 Общее количество лайков: {0}.".format(
+                                                  str(counters_data_splitted[1]), show_alert=True))
+                elif data_splitted[0] == "comments":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="💬 Общее количество комментариев: {0}.".format(
+                                                  str(counters_data_splitted[2]), show_alert=True))
+                elif data_splitted[0] == "reposts":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="🔁 Общее количество репостов: {0}.".format(
+                                                  str(counters_data_splitted[3]), show_alert=True))
+                elif data_splitted[0] == "views":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="👁 Общее количество просмотров: {0}.".format(
+                                                  str(counters_data_splitted[4]), show_alert=True))
+                else:
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="❗ Ой, что-то пошло не так. Попробуйте через некоторое время.",
+                                              show_alert=True)
+
             bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
     except Exception as e:
         try:
             bot.send_message(call.from_user.id,
-                             "❗  *Извините, что-то пошло не так, но в скором времени все исправится. "
+                             "❗ *Извините, что-то пошло не так, но в скором времени все исправится. "
                              "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
                              parse_mode="Markdown")
         except:
@@ -250,18 +318,18 @@ def command_start_handler(message):
 
 def command_start(message):
     try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
         if "ru" not in message.from_user.language_code:
             bot.send_message(message.from_user.id,
-                             "❗  *Unfortunately, the bot doesn't speak your language. So if you are "
+                             "❗ *Unfortunately, the bot doesn't speak your language. So if you are "
                              "not able to understand the text that is written below, use an online translator "
                              "such as Google Translate.*",
                              parse_mode="Markdown")
 
         bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
         menu_start(message)
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
 
         loop.run_until_complete(PSQL.execute(
             'INSERT INTO users("id") VALUES($1) RETURNING "id", "is_paid", "vk_token", "communities";',
@@ -270,7 +338,7 @@ def command_start(message):
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,
-                             "❗  *Извините, что-то пошло не так, но в скором времени все исправится. "
+                             "❗ *Извините, что-то пошло не так, но в скором времени все исправится. "
                              "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
                              parse_mode="Markdown")
         except:
@@ -296,7 +364,7 @@ def menu_start(message):
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,
-                             "❗  *Извините, что-то пошло не так, но в скором времени все исправится. "
+                             "❗ *Извините, что-то пошло не так, но в скором времени все исправится. "
                              "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
                              parse_mode="Markdown")
         except:
@@ -353,7 +421,7 @@ def command_debug(message):
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,
-                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "❗ *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
                              "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
                              parse_mode="Markdown")
         except:
@@ -418,7 +486,7 @@ def command_add(message):
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,
-                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "❗ *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
                              "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
                              parse_mode="Markdown")
         except:
@@ -483,7 +551,7 @@ def command_remove(message):
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,
-                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "❗ *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
                              "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
                              parse_mode="Markdown")
         except:
@@ -523,7 +591,7 @@ def command_addchannel(message):
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,
-                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "❗ *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
                              "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
                              parse_mode="Markdown")
         except:
@@ -630,7 +698,7 @@ def initiatechannel(message):
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,
-                             "❗  *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
+                             "❗ *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
                              "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
                              parse_mode="Markdown")
         except:
@@ -802,18 +870,48 @@ class channel:
                         markup.row(
                             types.InlineKeyboardButton("🕒 {0}".format(
                                 str(datetime.datetime.fromtimestamp(int(posts[pnum]['date'])).strftime("%H:%M"))),
-                                callback_data="time"))
+                                callback_data="channel_counters_time|{0}_{1}_{2}".format(
+                                                           str(communities[num]['id']), str(posts[pnum]['owner_id']),
+                                                           str(posts[pnum]['id']))))
                         markup.row(
                             types.InlineKeyboardButton("💖 {0}".format(
-                                str(posts[pnum]['likes']['count'])), callback_data="likes"),
+                                str(posts[pnum]['likes']['count'])),
+                                callback_data="channel_counters_likes|{0}_{1}_{2}".format(
+                                                           str(communities[num]['id']), str(posts[pnum]['owner_id']),
+                                                           str(posts[pnum]['id']))),
                             types.InlineKeyboardButton("💬 {0}".format(
-                                str(posts[pnum]['comments']['count'])), callback_data="comments"),
+                                str(posts[pnum]['comments']['count'])),
+                                callback_data="channel_counters_comments|{0}_{1}_{2}".format(
+                                                           str(communities[num]['id']), str(posts[pnum]['owner_id']),
+                                                           str(posts[pnum]['id']))),
                             types.InlineKeyboardButton("🔁 {0}".format(
-                                str(posts[pnum]['reposts']['count'])), callback_data="reposts"),
+                                str(posts[pnum]['reposts']['count'])),
+                                callback_data="channel_counters_reposts|{0}_{1}_{2}".format(
+                                                           str(communities[num]['id']), str(posts[pnum]['owner_id']),
+                                                           str(posts[pnum]['id']))),
                             types.InlineKeyboardButton("👁️ {0}".format(
-                                str(posts[pnum]['views']['count'])), callback_data="views"))
+                                str(posts[pnum]['views']['count'])),
+                                callback_data="channel_counters_views|{0}_{1}_{2}".format(
+                                                           str(communities[num]['id']), str(posts[pnum]['owner_id']),
+                                                           str(posts[pnum]['id'])))
+                        )
                         markup.row(
-                            types.InlineKeyboardButton("Обновить показатели", callback_data="refresh"))
+                            types.InlineKeyboardButton("Обновить показатели",
+                                                       callback_data="channel_counters_refresh|{0}_{1}_{2}".format(
+                                                           str(communities[num]['id']), str(posts[pnum]['owner_id']),
+                                                           str(posts[pnum]['id'])))
+                        )
+                        loop.run_until_complete(Redis.execute("SET", "channel_counters|{0}_{1}_{2}".format(
+                            str(communities[num]['id']), str(posts[pnum]['owner_id']), str(posts[pnum]['id'])
+                        ), "{0}_{1}_{2}_{3}_{4}".format(
+                            str(posts[pnum]['date']),
+                            str(posts[pnum]['likes']['count']), str(posts[pnum]['comments']['count']),
+                            str(posts[pnum]['reposts']['count']), str(posts[pnum]['views']['count'])
+                        )))
+                        loop.run_until_complete(Redis.execute("EXPIRE", "channel_counters|{0}_{1}_{2}".format(
+                            str(communities[num]['id']), str(posts[pnum]['owner_id']), str(posts[pnum]['id'])
+                        ), "1"))
+
                         formatted_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                          "\n\n{3}" \
                                          .format(
