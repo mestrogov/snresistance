@@ -16,6 +16,7 @@ import calendar
 import threading
 import asyncio
 import asyncpg
+import aioredis
 import ast
 import re
 import logging
@@ -73,18 +74,15 @@ except:
 
 
 # noinspection PyPep8Naming
-class db:
+class PSQL:
     @staticmethod
     async def connection():
         try:
-            psql_connection = await asyncpg.connect(host=config.databaseHost,
-                                                    database=config.databaseName,
-                                                    user=config.databaseUsername,
-                                                    port=config.databasePort)
+            response = await PSQL.fetchrow("SELECT pong FROM ping WHERE pong = TRUE;")
 
             logging.info("The connection to the PostgreSQL can be established successfully.")
+            logging.debug("Returned response: " + str(response))
 
-            await psql_connection.close()
             return "OK"
         except Exception as e:
             logging.error("Exception has been occurred while trying to establish connection to "
@@ -93,8 +91,9 @@ class db:
 
     @classmethod
     async def execute(cls, *args):
-        logging.debug("Passed arguments: " + str(args))
         try:
+            logging.debug("Passed arguments: " + str(args))
+
             psql_connection = await asyncpg.connect(host=config.databaseHost,
                                                     database=config.databaseName,
                                                     user=config.databaseUsername,
@@ -109,8 +108,9 @@ class db:
 
     @classmethod
     async def fetch(cls, *args):
-        logging.debug("Passed arguments: " + str(args))
         try:
+            logging.debug("Passed arguments: " + str(args))
+
             psql_connection = await asyncpg.connect(host=config.databaseHost,
                                                     database=config.databaseName,
                                                     user=config.databaseUsername,
@@ -126,8 +126,9 @@ class db:
 
     @classmethod
     async def fetchrow(cls, *args):
-        logging.debug("Passed arguments: " + str(args))
         try:
+            logging.debug("Passed arguments: " + str(args))
+
             psql_connection = await asyncpg.connect(host=config.databaseHost,
                                                     database=config.databaseName,
                                                     user=config.databaseUsername,
@@ -142,7 +143,38 @@ class db:
             return e
 
 
-# noinspection PyTypeChecker
+class Redis:
+    @staticmethod
+    async def connection():
+        try:
+            response = await Redis.execute("ping")
+
+            logging.info("The connection to Redis Server can be established successfully.")
+            logging.debug("Returned response: " + str(response))
+            return "OK"
+        except Exception as e:
+            logging.error("Exception has been occurred while trying to establish connection with "
+                          "Redis.", exc_info=True)
+            return e
+
+    @classmethod
+    async def execute(cls, *args):
+        try:
+            logging.debug("Passed arguments: " + str(args))
+
+            redis_connection = await aioredis.create_connection(
+                (config.redisHost, config.redisPort), encoding="UTF-8")
+
+            result = await redis_connection.execute(*args, encoding="UTF-8")
+            redis_connection.close()
+            await redis_connection.wait_closed()
+            return result
+        except Exception as e:
+            logging.error("Exception has been occurred while trying to execute Redis statement.", exc_info=True)
+            return e
+
+
+# noinspection PyTypeChecker,PyUnboundLocalVariable
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query_handler(call):
     try:
@@ -231,7 +263,7 @@ def command_start(message):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        loop.run_until_complete(db.execute(
+        loop.run_until_complete(PSQL.execute(
             'INSERT INTO users("id") VALUES($1) RETURNING "id", "is_paid", "vk_token", "communities";',
             message.from_user.id
         ))
@@ -295,11 +327,11 @@ def command_debug(message):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        is_paid = loop.run_until_complete(db.fetchrow(
+        is_paid = loop.run_until_complete(PSQL.fetchrow(
             'SELECT is_paid FROM users WHERE id = $1;',
             message.from_user.id
         ))['is_paid']
-        communities = loop.run_until_complete(db.fetchrow(
+        communities = loop.run_until_complete(PSQL.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
@@ -353,7 +385,7 @@ def command_add(message):
         asyncio.set_event_loop(loop)
 
         communities = []
-        communities_old = loop.run_until_complete(db.fetchrow(
+        communities_old = loop.run_until_complete(PSQL.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
@@ -374,7 +406,7 @@ def command_add(message):
                                  "Вы успешно добавили новое сообщество в подписки! Надеюсь, оно хорошее (:")
 
                 communities.extend([cm_url])
-                loop.run_until_complete(db.execute(
+                loop.run_until_complete(PSQL.execute(
                     'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", '
                     '"communities";',
                     str(communities), message.from_user.id
@@ -418,7 +450,7 @@ def command_remove(message):
         asyncio.set_event_loop(loop)
 
         communities = []
-        communities_db = loop.run_until_complete(db.fetchrow(
+        communities_db = loop.run_until_complete(PSQL.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
         ))['communities']
@@ -439,7 +471,7 @@ def command_remove(message):
                                  "Вы успешно отписались от сообщества!")
 
                 communities.remove(cm_url)
-                loop.run_until_complete(db.execute(
+                loop.run_until_complete(PSQL.execute(
                     'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", '
                     '"communities";',
                     str(communities), message.from_user.id
@@ -531,7 +563,7 @@ def initiatechannel(message):
                 command[1] = command[1].replace("public", "club", 1)
 
             user_id = int(command[0])
-            user_vktoken = loop.run_until_complete(db.fetchrow(
+            user_vktoken = loop.run_until_complete(PSQL.fetchrow(
                 'SELECT vk_token FROM users WHERE id = $1;',
                 int(user_id)
             ))['vk_token']
@@ -587,7 +619,7 @@ def initiatechannel(message):
 
             bot.set_chat_description(channel_id, config.channelDescription)
 
-            loop.run_until_complete(db.execute(
+            loop.run_until_complete(PSQL.execute(
                 'INSERT INTO channels("id", "owner_id", "community_id", "initiation_date") '
                 'VALUES($1, $2, $3, $4) RETURNING "id", "owner_id", "community_id", "initiation_date";',
                 int(channel_id), int(user_id), int(community['id']), int(initiation_date)
@@ -629,14 +661,14 @@ class channel:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
 
-                communities = loop.run_until_complete(db.fetch(
+                communities = loop.run_until_complete(PSQL.fetch(
                     'SELECT id, owner_id, community_id FROM channels;',
                 ))
 
                 time.sleep(1)
 
                 for num in range(len(communities)):
-                    vk_token = loop.run_until_complete(db.fetchrow(
+                    vk_token = loop.run_until_complete(PSQL.fetchrow(
                         'SELECT vk_token FROM users WHERE id = $1;',
                         communities[num]['owner_id']
                     ))['vk_token']
@@ -655,7 +687,7 @@ class channel:
                     posts = posts.json()['response']['items']
 
                     for pnum in range(len(posts)):
-                        is_posted = loop.run_until_complete(db.fetchrow(
+                        is_posted = loop.run_until_complete(PSQL.fetchrow(
                             'SELECT post_id FROM posts WHERE chat_id = $1 AND community_id = $2 AND post_id = $3;',
                             int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
                         ))
@@ -676,7 +708,7 @@ class channel:
                             pass
 
                         if not config.developerMode:
-                            loop.run_until_complete(db.execute(
+                            loop.run_until_complete(PSQL.execute(
                                 'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
                                 'RETURNING "chat_id", "community_id", "post_id";',
                                 int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
@@ -766,11 +798,12 @@ class channel:
                                           exc_info=True)
 
                         # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
-                        markup = types.InlineKeyboardMarkup(row_width=5)
-                        markup.add(
+                        markup = types.InlineKeyboardMarkup()
+                        markup.row(
                             types.InlineKeyboardButton("🕒 {0}".format(
                                 str(datetime.datetime.fromtimestamp(int(posts[pnum]['date'])).strftime("%H:%M"))),
-                                callback_data="time"),
+                                callback_data="time"))
+                        markup.row(
                             types.InlineKeyboardButton("💖 {0}".format(
                                 str(posts[pnum]['likes']['count'])), callback_data="likes"),
                             types.InlineKeyboardButton("💬 {0}".format(
@@ -778,7 +811,8 @@ class channel:
                             types.InlineKeyboardButton("🔁 {0}".format(
                                 str(posts[pnum]['reposts']['count'])), callback_data="reposts"),
                             types.InlineKeyboardButton("👁️ {0}".format(
-                                str(posts[pnum]['views']['count'])), callback_data="views"),
+                                str(posts[pnum]['views']['count'])), callback_data="views"))
+                        markup.row(
                             types.InlineKeyboardButton("Обновить показатели", callback_data="refresh"))
                         formatted_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                          "\n\n{3}" \
@@ -802,7 +836,9 @@ class channel:
 
 if __name__ == "__main__":
     try:
-        asyncio.get_event_loop().run_until_complete(db.connection())
+        asyncio.get_event_loop().run_until_complete(PSQL.connection())
+        asyncio.get_event_loop().run_until_complete(Redis.connection())
+
         logging.debug("Bot Settings: " + str(bot.get_me()))
 
         # noinspection PyTypeChecker

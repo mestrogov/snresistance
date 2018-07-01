@@ -10,6 +10,11 @@ databaseName = "SNResistance"
 databaseUsername = "postgres"
 databasePassword = ""
 
+# Redis Credentials
+redisHost = "192.168.90.100"
+redisPort = 32769
+redisPassword = ""
+
 startMessage = \
     "Благодарю за возникший интерес ко мне! *Cоциальные сети* — _абсолютное зло_ из 2004 года, с тех пор они _не видоизменились_ и _не поменяли_ своей сути." \
     "\n\n"\
