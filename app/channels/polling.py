@@ -52,17 +52,14 @@ def polling():
                         int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
                     ))
 
-                    if is_posted:
-                        continue
-
                     try:
-                        if str(posts[pnum]['marked_as_ads']) == "1":
+                        if is_posted:
                             continue
                     except:
                         pass
 
                     try:
-                        if str(posts[pnum]['is_pinned']) == "1":
+                        if str(posts[pnum]['marked_as_ads']) == "1":
                             continue
                     except:
                         pass

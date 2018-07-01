@@ -21,6 +21,7 @@ def callback_query(call):
         if call.message:
             if call.data == "exit_to_start_menu":
                 bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
+                # noinspection PyUnresolvedReferences
                 commands.start.startmenu(message=call)
             if call.data == "start_vk_import":
                 markup = types.InlineKeyboardMarkup(row_width=1)
