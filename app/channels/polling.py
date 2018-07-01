@@ -108,10 +108,19 @@ def polling():
                     """
 
                     try:
-                        # noinspection PyStatementEffect
-                        posts[pnum]['attachments']
+                        try:
+                            # noinspection PyStatementEffect
+                            posts[pnum]['attachments']
+                            attachments = True
+                        except KeyError:
+                            logging.debug("There is no attachments in this post: " + str(posts[pnum]['owner_id']) +
+                                          "_" + str(posts[pnum]['id']) + ".")
+                            continue
+
                         photos = []
                         videos = []
+                        audios = []
+                        links = []
                         for anum in range(len(posts[pnum]['attachments'])):
                             if posts[pnum]['attachments'][anum]['type'] == "photo":
                                 sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'],
@@ -147,10 +156,19 @@ def polling():
 
                                 videos.extend([{"url": video_url, "platform": str(video_platform),
                                                 "title": str(video['title']), "duration": str(video['duration'])}])
+                            elif posts[pnum]['attachments'][anum]['type'] == "audio":
+                                audios.extend([{"artist": str(posts[pnum]['attachments'][anum]['audio']['artist']),
+                                                "title": str(posts[pnum]['attachments'][anum]['audio']['title'])}])
+                            elif posts[pnum]['attachments'][anum]['type'] == "link":
+                                links.extend([{"title": str(posts[pnum]['attachments'][anum]['link']['title']),
+                                               "url": str(posts[pnum]['attachments'][anum]['link']['url'])}])
                             time.sleep(1.25)
                     except Exception as e:
+                        attachments = None
                         photos = None
                         videos = None
+                        audios = None
+                        links = None
                         logging.error("Exception has been occurred while trying to execute the method.",
                                       exc_info=True)
 
@@ -201,20 +219,62 @@ def polling():
                         str(communities[num]['id']), str(posts[pnum]['owner_id']), str(posts[pnum]['id'])
                     ), "1"))
 
-                    formatted_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
-                                     "\n\n{3}".format(
+                    template_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
+                                    "\n\n{3}".format(
                                          posts_original['groups'][0]['screen_name'],
                                          posts_original['groups'][0]['id'],
                                          posts[pnum]['id'],
                                          posts[pnum]['text']
                                      )
+                    formatted_text = template_text
+                    if attachments:
+                        formatted_text = formatted_text + str("\n\n*Прикрепленные вложения к публикации:*")
+                        aint = 1
+                        if photos:
+                            formatted_text = formatted_text + str("\n{0}. Все прикрепленные к публикации "
+                                                                  "фотографии отправлены в ответе на данное "
+                                                                  "сообщение.".format(str(aint)))
+                            aint += 1
+                        if videos:
+                            for vint in range(len(videos)):
+                                formatted_text = formatted_text + "\n{0}. Видеозапись — [{1}]({2}) — {3}".format(
+                                    str(int(aint)), str(videos[vint]['title']), str(videos[vint]['url']),
+                                    str(videos[vint]['platform'])
+                                )
+                                aint += 1
+                            if not links:
+                                formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
+                                    videos[0]['url']
+                                ), 1)
+                        if audios:
+                            for auint in range(len(audios)):
+                                formatted_text = formatted_text + \
+                                                 "\n{0}. Аудиозапись — [{1} — {2}](https://soundcloud.com/" \
+                                                 "search?q={1} {2}) — SoundCloud".format(
+                                                     str(int(aint)), str(audios[auint]['artist']),
+                                                     str(audios[auint]['title']))
+                                aint += 1
+                        if links:
+                            for lint in range(len(links)):
+                                formatted_text = formatted_text + \
+                                                 "\n{0}. Ссылка — [{1}]({2})".format(
+                                                     str(int(aint)), str(links[lint]['title']),
+                                                     str(links[lint]['url']))
+                                aint += 1
+                            formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
+                                links[0]['url']
+                            ), 1)
                     # channel.fix_markdown(posts[pnum]['text']))
-                    formatted_message = bot.send_message(communities[num]['id'], formatted_text,
-                                                         disable_web_page_preview=True, reply_markup=markup,
-                                                         parse_mode="Markdown")
+                    if videos or links:
+                        message = bot.send_message(communities[num]['id'], formatted_text, reply_markup=markup,
+                                                   parse_mode="Markdown")
+                    else:
+                        message = bot.send_message(communities[num]['id'], formatted_text,
+                                                   disable_web_page_preview=True, reply_markup=markup,
+                                                   parse_mode="Markdown")
                     if photos:
                         bot.send_media_group(communities[num]['id'], photos,
-                                             reply_to_message_id=formatted_message.message_id)
+                                             reply_to_message_id=message.message_id)
                     time.sleep(1.25)
             time.sleep(900)
         except Exception as e:
