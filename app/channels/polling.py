@@ -9,6 +9,7 @@ from app.remote.redis import Redis as redis
 from telebot import types
 from operator import itemgetter
 from datetime import datetime
+from ast import literal_eval
 import logging
 import asyncio
 import requests
@@ -121,6 +122,7 @@ def polling():
                         videos = []
                         audios = []
                         links = []
+                        polls = []
                         for anum in range(len(posts[pnum]['attachments'])):
                             if posts[pnum]['attachments'][anum]['type'] == "photo":
                                 sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'],
@@ -162,6 +164,10 @@ def polling():
                             elif posts[pnum]['attachments'][anum]['type'] == "link":
                                 links.extend([{"title": str(posts[pnum]['attachments'][anum]['link']['title']),
                                                "url": str(posts[pnum]['attachments'][anum]['link']['url'])}])
+                            elif posts[pnum]['attachments'][anum]['type'] == "poll":
+                                polls.extend([{"question": str(posts[pnum]['attachments'][anum]['poll']['question']),
+                                               "answers": literal_eval(
+                                                   str(posts[pnum]['attachments'][anum]['poll']['answers']))}])
                             time.sleep(1.25)
                     except Exception as e:
                         attachments = None
@@ -169,6 +175,7 @@ def polling():
                         videos = None
                         audios = None
                         links = None
+                        polls = None
                         logging.error("Exception has been occurred while trying to execute the method.",
                                       exc_info=True)
 
@@ -202,12 +209,6 @@ def polling():
                                 str(communities[num]['id']), str(posts[pnum]['owner_id']),
                                 str(posts[pnum]['id'])))
                     )
-                    markup.row(
-                        types.InlineKeyboardButton("Обновить показатели",
-                                                   callback_data="channel_counters_refresh|{0}_{1}_{2}".format(
-                                                       str(communities[num]['id']), str(posts[pnum]['owner_id']),
-                                                       str(posts[pnum]['id'])))
-                    )
                     loop.run_until_complete(redis.execute("SET", "channel_counters|{0}_{1}_{2}".format(
                         str(communities[num]['id']), str(posts[pnum]['owner_id']), str(posts[pnum]['id'])
                     ), "{0}_{1}_{2}_{3}_{4}".format(
@@ -235,6 +236,26 @@ def polling():
                                                                   "фотографии отправлены в ответе на данное "
                                                                   "сообщение.".format(str(aint)))
                             aint += 1
+                        if polls:
+                            formatted_text = formatted_text + str("\n{0}. Опрос прикреплен в виде кнопок к этому "
+                                                                  "сообщению.".format(str(aint)))
+                            aint += 1
+
+                            markup.row(
+                                types.InlineKeyboardButton("📋 {0}".format(
+                                    str(polls[0]['question'])),
+                                    callback_data="channel_polls|{0}_{1}_{2}".format(
+                                        str(communities[num]['id']), str(posts[pnum]['owner_id']),
+                                        str(posts[pnum]['id']))))
+                            for pint in range(len(polls[0]['answers'])):
+                                # noinspection PyTypeChecker
+                                markup.row(
+                                    types.InlineKeyboardButton("❎ {0} — {1} голосов".format(
+                                        str(polls[0]['answers'][pint]['text']),
+                                        str(polls[0]['answers'][pint]['votes'])),
+                                        callback_data="channel_polls_answers|{0}_{1}_{2}_{3}".format(
+                                            str(communities[num]['id']), str(posts[pnum]['owner_id']),
+                                            str(posts[pnum]['id']), str(polls[0]['answers'][pint]['id']))))
                         if videos:
                             for vint in range(len(videos)):
                                 formatted_text = formatted_text + "\n{0}. Видеозапись — [{1}]({2}) — {3}".format(
@@ -264,7 +285,14 @@ def polling():
                             formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
                                 links[0]['url']
                             ), 1)
+
                     # channel.fix_markdown(posts[pnum]['text']))
+                    markup.row(
+                        types.InlineKeyboardButton("🔄 Обновить показатели",
+                                                   callback_data="channel_counters_refresh|{0}_{1}_{2}".format(
+                                                       str(communities[num]['id']), str(posts[pnum]['owner_id']),
+                                                       str(posts[pnum]['id'])))
+                    )
                     if videos or links:
                         message = bot.send_message(communities[num]['id'], formatted_text, reply_markup=markup,
                                                    parse_mode="Markdown")
