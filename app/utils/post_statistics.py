@@ -46,22 +46,26 @@ def statistics(posts, chat_id, mtype="initiate", message_id=None):
                     str(posts['id']), str(posts['date']))))
         markup.row(
             types.InlineKeyboardButton("💖 {0}".format(
-                str(ceil(int(posts['likes']['count'])/1000.0)*1)),
+                (str(ceil(int(posts['likes']['count']) / 1000.0) * 1) + "K" if int(posts['likes']['count']) > 1000
+                 else str(posts['likes']['count']))),
                 callback_data="channel_counters_likes|{0}_{1}_{2}|{3}".format(
                     str(chat_id), str(posts['owner_id']),
                     str(posts['id']), str(posts['likes']['count']))),
             types.InlineKeyboardButton("💬 {0}".format(
-                str(posts['comments']['count'])),
+                (str(ceil(int(posts['comments']['count']) / 1000.0) * 1) + "K" if int(posts['comments']['count']) > 1000
+                 else str(posts['comments']['count']))),
                 callback_data="channel_counters_comments|{0}_{1}_{2}|{3}".format(
                     str(chat_id), str(posts['owner_id']),
                     str(posts['id']), str(posts['comments']['count']))),
             types.InlineKeyboardButton("🔁 {0}".format(
-                str(posts['reposts']['count'])),
+                (str(ceil(int(posts['reposts']['count']) / 1000.0) * 1) + "K" if int(posts['reposts']['count']) > 1000
+                 else str(posts['reposts']['count']))),
                 callback_data="channel_counters_reposts|{0}_{1}_{2}|{3}".format(
                     str(chat_id), str(posts['owner_id']),
                     str(posts['id']), str(posts['reposts']['count']))),
             types.InlineKeyboardButton("👁️ {0}".format(
-                str(posts['views']['count'])),
+                (str(ceil(int(posts['views']['count']) / 1000.0) * 1) + "K" if int(posts['views']['count']) > 1000
+                 else str(posts['views']['count']))),
                 callback_data="channel_counters_views|{0}_{1}_{2}|{3}".format(
                     str(chat_id), str(posts['owner_id']),
                     str(posts['id']), str(posts['views']['count']))))
@@ -70,18 +74,20 @@ def statistics(posts, chat_id, mtype="initiate", message_id=None):
             markup.row(
                 types.InlineKeyboardButton("📋 {0}".format(
                     str(poll[0]['question'])),
-                    callback_data="channel_polls|{0}_{1}_{2}".format(
-                        str(chat_id), str(posts['owner_id']),
-                        str(posts['id']))))
+                    callback_data="channel_polls"))
             for pint in range(len(poll[0]['answers'])):
+                poll[0]['answers'][0]['votes'] = 134823
+                poll[0]['answers'][1]['votes'] = 98032
                 # noinspection PyTypeChecker
                 markup.row(
                     types.InlineKeyboardButton("❎ {0} — {1} голосов".format(
                         str(poll[0]['answers'][pint]['text']),
-                        str(poll[0]['answers'][pint]['votes'])),
-                        callback_data="channel_polls_answers|{0}_{1}_{2}|{3}".format(
+                        (str(ceil(int(poll[0]['answers'][pint]['votes']) / 1000.0) * 1) + "K" if int(
+                            poll[0]['answers'][pint]['votes']) > 1000
+                         else str(poll[0]['answers'][pint]['votes']))),
+                        callback_data="channel_counters_poll_answers|{0}_{1}_{2}|{3}".format(
                             str(chat_id), str(posts['owner_id']),
-                            str(posts['id']), str(poll[0]['answers'][pint]['id']))))
+                            str(posts['id']), str(poll[0]['answers'][pint]['votes']))))
 
         markup.row(
             types.InlineKeyboardButton("🔄 Обновить статистику",

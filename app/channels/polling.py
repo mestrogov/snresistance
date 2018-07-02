@@ -159,13 +159,13 @@ def polling():
 
                                     videos.extend([{"url": video_url, "platform": str(video_platform),
                                                     "title": str(video['title']), "duration": str(video['duration'])}])
+                                    time.sleep(1)
                                 elif posts[pnum]['attachments'][anum]['type'] == "audio":
                                     audios.extend([{"artist": str(posts[pnum]['attachments'][anum]['audio']['artist']),
                                                     "title": str(posts[pnum]['attachments'][anum]['audio']['title'])}])
                                 elif posts[pnum]['attachments'][anum]['type'] == "link":
                                     links.extend([{"title": str(posts[pnum]['attachments'][anum]['link']['title']),
                                                    "url": str(posts[pnum]['attachments'][anum]['link']['url'])}])
-                                time.sleep(1.25)
                         except KeyError:
                             logging.debug("There is no attachments in this post: " + str(posts[pnum]['owner_id']) +
                                           "_" + str(posts[pnum]['id']) + ".")

@@ -48,31 +48,34 @@ def callback_query(call):
                 logging.warning("The temporary stub for callback with start_menu_next data.")
             elif call.data.startswith("channel_counters_"):
                 data_splitted = call.data.replace("channel_counters_", "", 1).split("|")
-
                 counter_data_splitted = data_splitted[2]
 
                 if data_splitted[0] == "time":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="🕒 Время публикации данного поста: {0} MSK.".format(
+                                              text="🕒 Точное время публикации данного поста: {0} MSK.".format(
                                                   str(datetime.fromtimestamp(
-                                                      int(counter_data_splitted)).strftime("%H:%M"))),
-                                              show_alert=True)
+                                                      int(counter_data_splitted)).strftime("%d.%m.%y, %H:%M:%S"))),
+                                              show_alert=True, cache_time=30)
                 elif data_splitted[0] == "likes":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="💖 Общее количество лайков: {0}.".format(
-                                                  str(counter_data_splitted), show_alert=True))
+                                              text="💖 Точное количество лайков: {0}.".format(
+                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
                 elif data_splitted[0] == "comments":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="💬 Общее количество комментариев: {0}.".format(
-                                                  str(counter_data_splitted), show_alert=True))
+                                              text="💬 Точное количество комментариев: {0}.".format(
+                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
                 elif data_splitted[0] == "reposts":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="🔁 Общее количество репостов: {0}.".format(
-                                                  str(counter_data_splitted), show_alert=True))
+                                              text="🔁 Точное количество репостов: {0}.".format(
+                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
                 elif data_splitted[0] == "views":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="👁 Общее количество просмотров: {0}.".format(
-                                                  str(counter_data_splitted), show_alert=True))
+                                              text="👁 Точное количество просмотров: {0}.".format(
+                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
+                elif data_splitted[0] == "poll_answers":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="❎ Точное количество голосов за данный вариант ответа: {0}.".format(
+                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
             elif call.data.startswith("channel_refresh_counters"):
                 data_splitted = call.data.replace("channel_refresh_counters_", "", 1).split("|")
 
@@ -102,18 +105,20 @@ def callback_query(call):
                                                   message_id=call.message.json['message_id'], mtype="update")
                     if stats_status == "OK" or stats_status == "IS NOT MODIFIED":
                         bot.answer_callback_query(callback_query_id=call.id,
-                                                  text="✅ Статистика данной публикации была успешно обновлена!",
-                                                  show_alert=True)
+                                                  text="✅ Статистика данной публикации была успешно обновлена! "
+                                                       "Обратите внимание, что клиенту потребуется до 30 секунд для "
+                                                       "отображения новых результатов при нажатии на кнопку.",
+                                                  show_alert=True, cache_time=30)
                     else:
                         bot.answer_callback_query(callback_query_id=call.id,
                                                   text="❌ Что-то пошло не так при попытке обновлении статистики данной "
                                                        "публикации, попробуйте позже.",
-                                                  show_alert=True)
+                                                  show_alert=True, cache_time=30)
                 else:
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="❌ Статистика данной публикации была недавно обновлена, попробуйте "
                                                    "немного позже.",
-                                              show_alert=True)
+                                              show_alert=True, cache_time=30)
             bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
     except Exception as e:
         try:
