@@ -3,6 +3,7 @@
 from app import remote
 from app import logging
 from app.bot import bot as bot
+from app.utils.post_statistics import statistics as postStatistics
 from app.remote.postgresql import Psql as psql
 from app.remote.redis import Redis as redis
 from app import commands as commands
@@ -48,14 +49,36 @@ def callback_query(call):
             elif call.data.startswith("channel_counters_"):
                 data_splitted = call.data.replace("channel_counters_", "", 1).split("|")
 
+                counter_data_splitted = data_splitted[2]
+
+                if data_splitted[0] == "time":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="🕒 Время публикации данного поста: {0} MSK.".format(
+                                                  str(datetime.fromtimestamp(
+                                                      int(counter_data_splitted)).strftime("%H:%M"))),
+                                              show_alert=True)
+                elif data_splitted[0] == "likes":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="💖 Общее количество лайков: {0}.".format(
+                                                  str(counter_data_splitted), show_alert=True))
+                elif data_splitted[0] == "comments":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="💬 Общее количество комментариев: {0}.".format(
+                                                  str(counter_data_splitted), show_alert=True))
+                elif data_splitted[0] == "reposts":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="🔁 Общее количество репостов: {0}.".format(
+                                                  str(counter_data_splitted), show_alert=True))
+                elif data_splitted[0] == "views":
+                    bot.answer_callback_query(callback_query_id=call.id,
+                                              text="👁 Общее количество просмотров: {0}.".format(
+                                                  str(counter_data_splitted), show_alert=True))
+            elif call.data.startswith("channel_refresh_counters"):
+                data_splitted = call.data.replace("channel_refresh_counters_", "", 1).split("|")
+
                 cached = loop.run_until_complete(
-                    redis.execute("EXISTS", "channel_counters|{0}".format(str(data_splitted[1]))))
-                cached = int(cached)
-                if cached:
-                    counters_data_splitted = loop.run_until_complete(redis.execute("GET", "channel_counters|{0}".format(
-                        str(data_splitted[1])
-                    ))).split("_")
-                else:
+                    redis.execute("TTL", "channel_counters|{0}".format(str(data_splitted[1]))))
+                if int(cached) <= 0:
                     owner_id = loop.run_until_complete(psql.fetchrow('SELECT owner_id FROM channels WHERE id = $1;',
                                                                      int(call.message.json['chat']['id'])))['owner_id']
                     token = loop.run_until_complete(psql.fetchrow(
@@ -64,52 +87,33 @@ def callback_query(call):
                     ))['vk_token']
 
                     ids_data_splitted = data_splitted[1].split("_")
-                    post_counters = requests.post("https://api.vk.com/method/wall.getById",
-                                                  data={
-                                                      "posts": str(
-                                                          str(ids_data_splitted[1]) + "_" +
-                                                          str(ids_data_splitted[2])
-                                                      ),
-                                                      "copy_history_depth": 1,
-                                                      "extended": 1,
-                                                      "access_token": token,
-                                                      "v": "5.78"
-                                                  }).json()['response']['items'][0]
-                    counters_data_splitted = "{0}_{1}_{2}_{3}_{4}".format(
-                        str(post_counters['date']),
-                        str(post_counters['likes']['count']),
-                        str(post_counters['comments']['count']),
-                        str(post_counters['reposts']['count']),
-                        str(post_counters['views']['count'])
-                    ).split("_")
-
-                if data_splitted[0] == "time":
-                    bot.answer_callback_query(callback_query_id=call.id,
-                                              text="🕒 Время публикации данного поста: {0} MSK.".format(
-                                                  str(datetime.fromtimestamp(
-                                                      int(counters_data_splitted[0])).strftime("%H:%M"))),
-                                              show_alert=True)
-                elif data_splitted[0] == "likes":
-                    bot.answer_callback_query(callback_query_id=call.id,
-                                              text="💖 Общее количество лайков: {0}.".format(
-                                                  str(counters_data_splitted[1]), show_alert=True))
-                elif data_splitted[0] == "comments":
-                    bot.answer_callback_query(callback_query_id=call.id,
-                                              text="💬 Общее количество комментариев: {0}.".format(
-                                                  str(counters_data_splitted[2]), show_alert=True))
-                elif data_splitted[0] == "reposts":
-                    bot.answer_callback_query(callback_query_id=call.id,
-                                              text="🔁 Общее количество репостов: {0}.".format(
-                                                  str(counters_data_splitted[3]), show_alert=True))
-                elif data_splitted[0] == "views":
-                    bot.answer_callback_query(callback_query_id=call.id,
-                                              text="👁 Общее количество просмотров: {0}.".format(
-                                                  str(counters_data_splitted[4]), show_alert=True))
+                    post = requests.post("https://api.vk.com/method/wall.getById",
+                                         data={
+                                             "posts": str(
+                                                 str(ids_data_splitted[1]) + "_" +
+                                                 str(ids_data_splitted[2])
+                                             ),
+                                             "copy_history_depth": 1,
+                                             "extended": 1,
+                                             "access_token": token,
+                                             "v": "5.78"
+                                         }).json()['response']['items'][0]
+                    stats_status = postStatistics(posts=post, chat_id=call.message.json['chat']['id'],
+                                                  message_id=call.message.json['message_id'], mtype="update")
+                    if stats_status == "OK" or stats_status == "IS NOT MODIFIED":
+                        bot.answer_callback_query(callback_query_id=call.id,
+                                                  text="✅ Статистика данной публикации была успешно обновлена!",
+                                                  show_alert=True)
+                    else:
+                        bot.answer_callback_query(callback_query_id=call.id,
+                                                  text="❌ Что-то пошло не так при попытке обновлении статистики данной "
+                                                       "публикации, попробуйте позже.",
+                                                  show_alert=True)
                 else:
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="❗ Ой, что-то пошло не так. Попробуйте через некоторое время.",
+                                              text="❌ Статистика данной публикации была недавно обновлена, попробуйте "
+                                                   "немного позже.",
                                               show_alert=True)
-
             bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
     except Exception as e:
         try:

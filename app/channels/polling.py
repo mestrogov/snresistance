@@ -4,11 +4,10 @@
 from app import logging
 from app import config as config
 from app.bot import bot as bot
+from app.utils.post_statistics import statistics as postStatistics
 from app.remote.postgresql import Psql as psql
-from app.remote.redis import Redis as redis
 from telebot import types
 from operator import itemgetter
-from datetime import datetime
 from ast import literal_eval
 import logging
 import asyncio
@@ -37,7 +36,7 @@ def polling():
                 posts = requests.post("https://api.vk.com/method/wall.get",
                                       data={
                                           "owner_id": str("-" + str(communities[num]['community_id'])),
-                                          "count": 2,
+                                          "count": 3,
                                           "filter": "all",
                                           "extended": 1,
                                           "access_token": vk_token,
@@ -108,117 +107,74 @@ def polling():
                     bot.send_media_group(message.from_user.id, medias)
                     """
 
+                    attachments = None
+                    photos = None
+                    videos = None
+                    audios = None
+                    links = None
+
                     try:
                         try:
                             # noinspection PyStatementEffect
                             posts[pnum]['attachments']
+
                             attachments = True
+                            photos = []
+                            videos = []
+                            audios = []
+                            links = []
+
+                            for anum in range(len(posts[pnum]['attachments'])):
+                                if posts[pnum]['attachments'][anum]['type'] == "photo":
+                                    sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'],
+                                                          key=itemgetter('width'))
+                                    photos.extend([types.InputMediaPhoto(sorted_sizes[-1]['url'])])
+                                elif posts[pnum]['attachments'][anum]['type'] == "video":
+                                    video = requests.post("https://api.vk.com/method/video.get",
+                                                          data={
+                                                              "videos": str(
+                                                                  str(posts[pnum]['attachments'][anum]['video']
+                                                                      ['owner_id']) + "_" +
+                                                                  str(posts[pnum]['attachments'][anum]['video']['id'])
+                                                              ),
+                                                              "extended": 1,
+                                                              "access_token": vk_token,
+                                                              "v": "5.80"
+                                                          }).json()['response']
+                                    video = video['items'][0]
+
+                                    try:
+                                        video_platform = str(video['platform'])
+                                    except:
+                                        video_platform = "VK"
+
+                                    if video_platform == "YouTube":
+                                        video_url = "https://www.youtube.com/watch?v={0}".format(
+                                            str(video['player']).split("/embed/", 1)[1].split("?__ref=", 1)[0].strip()
+                                        )
+                                    else:
+                                        video_url = "https://vk.com/video{0}_{1}".format(
+                                            str(video['owner_id']), str(video['id'])
+                                        )
+
+                                    videos.extend([{"url": video_url, "platform": str(video_platform),
+                                                    "title": str(video['title']), "duration": str(video['duration'])}])
+                                elif posts[pnum]['attachments'][anum]['type'] == "audio":
+                                    audios.extend([{"artist": str(posts[pnum]['attachments'][anum]['audio']['artist']),
+                                                    "title": str(posts[pnum]['attachments'][anum]['audio']['title'])}])
+                                elif posts[pnum]['attachments'][anum]['type'] == "link":
+                                    links.extend([{"title": str(posts[pnum]['attachments'][anum]['link']['title']),
+                                                   "url": str(posts[pnum]['attachments'][anum]['link']['url'])}])
+                                time.sleep(1.25)
                         except KeyError:
                             logging.debug("There is no attachments in this post: " + str(posts[pnum]['owner_id']) +
                                           "_" + str(posts[pnum]['id']) + ".")
-                            continue
-
-                        photos = []
-                        videos = []
-                        audios = []
-                        links = []
-                        polls = []
-                        for anum in range(len(posts[pnum]['attachments'])):
-                            if posts[pnum]['attachments'][anum]['type'] == "photo":
-                                sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'],
-                                                      key=itemgetter('width'))
-                                photos.extend([types.InputMediaPhoto(sorted_sizes[-1]['url'])])
-                            elif posts[pnum]['attachments'][anum]['type'] == "video":
-                                video = requests.post("https://api.vk.com/method/video.get",
-                                                      data={
-                                                          "videos": str(
-                                                              str(posts[pnum]['attachments'][anum]['video']
-                                                                  ['owner_id']) + "_" +
-                                                              str(posts[pnum]['attachments'][anum]['video']['id'])
-                                                          ),
-                                                          "extended": 1,
-                                                          "access_token": vk_token,
-                                                          "v": "5.80"
-                                                      }).json()['response']
-                                video = video['items'][0]
-
-                                try:
-                                    video_platform = str(video['platform'])
-                                except:
-                                    video_platform = "VK"
-
-                                if video_platform == "YouTube":
-                                    video_url = "https://www.youtube.com/watch?v={0}".format(
-                                        str(video['player']).split("/embed/", 1)[1].split("?__ref=", 1)[0].strip()
-                                    )
-                                else:
-                                    video_url = "https://vk.com/video{0}_{1}".format(
-                                        str(video['owner_id']), str(video['id'])
-                                    )
-
-                                videos.extend([{"url": video_url, "platform": str(video_platform),
-                                                "title": str(video['title']), "duration": str(video['duration'])}])
-                            elif posts[pnum]['attachments'][anum]['type'] == "audio":
-                                audios.extend([{"artist": str(posts[pnum]['attachments'][anum]['audio']['artist']),
-                                                "title": str(posts[pnum]['attachments'][anum]['audio']['title'])}])
-                            elif posts[pnum]['attachments'][anum]['type'] == "link":
-                                links.extend([{"title": str(posts[pnum]['attachments'][anum]['link']['title']),
-                                               "url": str(posts[pnum]['attachments'][anum]['link']['url'])}])
-                            elif posts[pnum]['attachments'][anum]['type'] == "poll":
-                                polls.extend([{"question": str(posts[pnum]['attachments'][anum]['poll']['question']),
-                                               "answers": literal_eval(
-                                                   str(posts[pnum]['attachments'][anum]['poll']['answers']))}])
-                            time.sleep(1.25)
                     except Exception as e:
-                        attachments = None
-                        photos = None
-                        videos = None
-                        audios = None
-                        links = None
-                        polls = None
                         logging.error("Exception has been occurred while trying to execute the method.",
                                       exc_info=True)
 
                     # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
-                    markup = types.InlineKeyboardMarkup()
-                    markup.row(
-                        types.InlineKeyboardButton("🕒 {0}".format(
-                            str(datetime.fromtimestamp(int(posts[pnum]['date'])).strftime("%H:%M"))),
-                            callback_data="channel_counters_time|{0}_{1}_{2}".format(
-                                str(communities[num]['id']), str(posts[pnum]['owner_id']),
-                                str(posts[pnum]['id']))))
-                    markup.row(
-                        types.InlineKeyboardButton("💖 {0}".format(
-                            str(posts[pnum]['likes']['count'])),
-                            callback_data="channel_counters_likes|{0}_{1}_{2}".format(
-                                str(communities[num]['id']), str(posts[pnum]['owner_id']),
-                                str(posts[pnum]['id']))),
-                        types.InlineKeyboardButton("💬 {0}".format(
-                            str(posts[pnum]['comments']['count'])),
-                            callback_data="channel_counters_comments|{0}_{1}_{2}".format(
-                                str(communities[num]['id']), str(posts[pnum]['owner_id']),
-                                str(posts[pnum]['id']))),
-                        types.InlineKeyboardButton("🔁 {0}".format(
-                            str(posts[pnum]['reposts']['count'])),
-                            callback_data="channel_counters_reposts|{0}_{1}_{2}".format(
-                                str(communities[num]['id']), str(posts[pnum]['owner_id']),
-                                str(posts[pnum]['id']))),
-                        types.InlineKeyboardButton("👁️ {0}".format(
-                            str(posts[pnum]['views']['count'])),
-                            callback_data="channel_counters_views|{0}_{1}_{2}".format(
-                                str(communities[num]['id']), str(posts[pnum]['owner_id']),
-                                str(posts[pnum]['id'])))
-                    )
-                    loop.run_until_complete(redis.execute("SET", "channel_counters|{0}_{1}_{2}".format(
-                        str(communities[num]['id']), str(posts[pnum]['owner_id']), str(posts[pnum]['id'])
-                    ), "{0}_{1}_{2}_{3}_{4}".format(
-                        str(posts[pnum]['date']),
-                        str(posts[pnum]['likes']['count']), str(posts[pnum]['comments']['count']),
-                        str(posts[pnum]['reposts']['count']), str(posts[pnum]['views']['count'])
-                    )))
-                    loop.run_until_complete(redis.execute("EXPIRE", "channel_counters|{0}_{1}_{2}".format(
-                        str(communities[num]['id']), str(posts[pnum]['owner_id']), str(posts[pnum]['id'])
-                    ), "1"))
+                    markup, poll = postStatistics(posts=posts[pnum], chat_id=communities[num]['id'], mtype="initiate")
 
                     template_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                     "\n\n{3}".format(
@@ -236,26 +192,10 @@ def polling():
                                                                   "фотографии отправлены в ответе на данное "
                                                                   "сообщение.".format(str(aint)))
                             aint += 1
-                        if polls:
+                        if poll:
                             formatted_text = formatted_text + str("\n{0}. Опрос прикреплен в виде кнопок к этому "
                                                                   "сообщению.".format(str(aint)))
                             aint += 1
-
-                            markup.row(
-                                types.InlineKeyboardButton("📋 {0}".format(
-                                    str(polls[0]['question'])),
-                                    callback_data="channel_polls|{0}_{1}_{2}".format(
-                                        str(communities[num]['id']), str(posts[pnum]['owner_id']),
-                                        str(posts[pnum]['id']))))
-                            for pint in range(len(polls[0]['answers'])):
-                                # noinspection PyTypeChecker
-                                markup.row(
-                                    types.InlineKeyboardButton("❎ {0} — {1} голосов".format(
-                                        str(polls[0]['answers'][pint]['text']),
-                                        str(polls[0]['answers'][pint]['votes'])),
-                                        callback_data="channel_polls_answers|{0}_{1}_{2}_{3}".format(
-                                            str(communities[num]['id']), str(posts[pnum]['owner_id']),
-                                            str(posts[pnum]['id']), str(polls[0]['answers'][pint]['id']))))
                         if videos:
                             for vint in range(len(videos)):
                                 formatted_text = formatted_text + "\n{0}. Видеозапись — [{1}]({2}) — {3}".format(
@@ -287,12 +227,6 @@ def polling():
                             ), 1)
 
                     # channel.fix_markdown(posts[pnum]['text']))
-                    markup.row(
-                        types.InlineKeyboardButton("🔄 Обновить показатели",
-                                                   callback_data="channel_counters_refresh|{0}_{1}_{2}".format(
-                                                       str(communities[num]['id']), str(posts[pnum]['owner_id']),
-                                                       str(posts[pnum]['id'])))
-                    )
                     if videos or links:
                         message = bot.send_message(communities[num]['id'], formatted_text, reply_markup=markup,
                                                    parse_mode="Markdown")
