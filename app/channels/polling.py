@@ -2,11 +2,11 @@
 
 from app import logging
 from app import config as config
+from app.utils.markup_fixes import markup_multipurpose_fixes as markup_fixes
 from app.remote.postgresql import Psql as psql
 from app.utils.post_statistics import statistics as postStatistics
 from telegram import InputMediaPhoto
 from telegram.ext.dispatcher import run_async
-from telegram.utils.helpers import escape_markdown
 from operator import itemgetter
 import logging
 import asyncio
@@ -48,16 +48,17 @@ def polling():
                                           "filter": "all",
                                           "extended": 1,
                                           "access_token": vk_token,
-                                          "v": "5.78"
-                                      })
+                                          "v": "5.80"
+                                      }).json()
 
-                posts_original = posts.json()['response']
-                posts = posts.json()['response']['items']
+                posts_original = posts['response']
+                posts = posts['response']['items']
 
                 for pnum in range(len(posts)):
+                    posts = posts[pnum]
                     is_posted = loop.run_until_complete(psql.fetchrow(
                         'SELECT post_id FROM posts WHERE chat_id = $1 AND community_id = $2 AND post_id = $3;',
-                        int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
+                        int(communities[num]['id']), int(posts['owner_id']), int(posts['id'])
                     ))
 
                     try:
@@ -67,34 +68,10 @@ def polling():
                         pass
 
                     try:
-                        if str(posts[pnum]['marked_as_ads']) == "1":
+                        if str(posts["marked_as_ads"]) == "1":
                             continue
                     except:
                         pass
-
-                    """
-                    # VK URL Parsing
-                    post_text = posts['response']['items'][num]['text']
-                    try:
-                        post_text_part = post_text.partition('[')[-1].rpartition(']')[0]
-                        post_text_splitted = post_text_part.split("|")
-                        post_text_md = "[" + str(post_text_splitted[1]) + "]" + \
-                                       "(https://vk.com/" + str(post_text_splitted[0]) + ")"
-                        post_text = post_text.replace("[" + post_text_part + "]", post_text_md)
-                    except:
-                        pass
-
-                    # Hashtags Removing
-                    try:
-                        post_text_stripping = post_text
-                        text = {tag.strip("#") for tag in post_text_stripping.split() if tag.startswith("#")}
-                        text = list(text)
-                        for it in text:
-                            _t = "#" + it
-                            post_text = post_text.replace(_t, "")
-                    except:
-                        pass
-                    """
 
                     attachments = None
                     photos = None
@@ -105,7 +82,7 @@ def polling():
                     try:
                         try:
                             # noinspection PyStatementEffect
-                            posts[pnum]['attachments']
+                            posts['attachments']
 
                             attachments = True
                             photos = []
@@ -113,19 +90,19 @@ def polling():
                             audios = []
                             links = []
 
-                            for anum in range(len(posts[pnum]['attachments'])):
-                                if posts[pnum]['attachments'][anum]['type'] == "photo":
-                                    sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'],
+                            for anum in range(len(posts['attachments'])):
+                                if posts['attachments'][anum]['type'] == "photo":
+                                    sorted_sizes = sorted(posts['attachments'][anum]['photo']['sizes'],
                                                           key=itemgetter('width'))
                                     photos.extend([InputMediaPhoto(sorted_sizes[-1]['url'])])
-                                elif posts[pnum]['attachments'][anum]['type'] == "video":
+                                elif posts['attachments'][anum]['type'] == "video":
                                     time.sleep(0.5)
                                     video = requests.post("https://api.vk.com/method/video.get",
                                                           data={
                                                               "videos": str(
-                                                                  str(posts[pnum]['attachments'][anum]['video']
+                                                                  str(posts['attachments'][anum]['video']
                                                                       ['owner_id']) + "_" +
-                                                                  str(posts[pnum]['attachments'][anum]['video']['id'])
+                                                                  str(posts['attachments'][anum]['video']['id'])
                                                               ),
                                                               "extended": 1,
                                                               "access_token": vk_token,
@@ -149,29 +126,29 @@ def polling():
                                     videos.extend([{"url": video_url, "platform": str(video_platform),
                                                     "title": str(video['title']), "duration": str(video['duration'])}])
                                     time.sleep(1)
-                                elif posts[pnum]['attachments'][anum]['type'] == "audio":
-                                    audios.extend([{"artist": str(posts[pnum]['attachments'][anum]['audio']['artist']),
-                                                    "title": str(posts[pnum]['attachments'][anum]['audio']['title'])}])
-                                elif posts[pnum]['attachments'][anum]['type'] == "link":
-                                    links.extend([{"title": str(posts[pnum]['attachments'][anum]['link']['title']),
-                                                   "url": str(posts[pnum]['attachments'][anum]['link']['url'])}])
+                                elif posts['attachments'][anum]['type'] == "audio":
+                                    audios.extend([{"artist": str(posts['attachments'][anum]['audio']['artist']),
+                                                    "title": str(posts['attachments'][anum]['audio']['title'])}])
+                                elif posts['attachments'][anum]['type'] == "link":
+                                    links.extend([{"title": str(posts['attachments'][anum]['link']['title']),
+                                                   "url": str(posts['attachments'][anum]['link']['url'])}])
                         except KeyError:
-                            logging.debug("There is no attachments in this post: " + str(posts[pnum]['owner_id']) +
-                                          "_" + str(posts[pnum]['id']) + ".")
+                            logging.debug("There is no attachments in this post: " + str(posts['owner_id']) +
+                                          "_" + str(posts['id']) + ".")
                     except Exception as e:
                         logging.error("Exception has been occurred while trying to execute attachments check.",
                                       exc_info=True)
 
                     # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
                     markup, poll = postStatistics(bot,
-                                                  posts=posts[pnum], chat_id=communities[num]['id'], mtype="initiate")
+                                                  posts=posts, chat_id=communities[num]['id'], mtype="initiate")
 
                     template_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                     "\n\n{3}".format(
-                                         posts_original['groups'][0]['screen_name'],
-                                         posts_original['groups'][0]['id'],
-                                         posts[pnum]['id'],
-                                         str(escape_markdown(posts[pnum]['text']))
+                                         str(posts_original['groups'][0]['screen_name']),
+                                         str(posts_original['groups'][0]['id']),
+                                         str(posts['id']),
+                                         str(markup_fixes(posts['text']))
                                      )
                     formatted_text = template_text
                     if attachments:
@@ -216,7 +193,6 @@ def polling():
                                 links[0]['url']
                             ), 1)
 
-                    # channel.fix_markdown(posts[pnum]['text']))
                     try:
                         if videos or links:
                             message = bot.send_message(communities[num]['id'], formatted_text, reply_markup=markup,
@@ -233,7 +209,7 @@ def polling():
                             loop.run_until_complete(psql.execute(
                                 'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
                                 'RETURNING "chat_id", "community_id", "post_id";',
-                                int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
+                                int(communities[num]['id']), int(posts['owner_id']), int(posts['id'])
                             ))
                         time.sleep(1)
                     except Exception as e:
@@ -244,18 +220,3 @@ def polling():
         except Exception as e:
             logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
             return e
-
-
-"""
-@classmethod
-def fix_markdown(cls, text):
-    text = text + "*"
-    regex_index = r'((([_*]).+?\3[^_*]*)*)([_*])'
-    text = re.sub(regex_index, "\g<1>\\\\\g<4>", text)
-    return channel.fix_markdown_urls(text)
-
-@classmethod
-def fix_markdown_urls(cls, text):
-    regex_index = r'\[(.*?)\]\((.*?)\)'
-    return re.sub(regex_index, '[\\1](\\2)', text)
-"""

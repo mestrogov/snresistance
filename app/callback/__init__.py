@@ -101,7 +101,7 @@ def callback_query(bot, call):
                                              "copy_history_depth": 1,
                                              "extended": 1,
                                              "access_token": token,
-                                             "v": "5.78"
+                                             "v": "5.80"
                                          }).json()['response']['items'][0]
                     stats_status = postStatistics(bot, posts=post, chat_id=call.message.chat.id,
                                                   message_id=call.message.message_id, mtype="update")
