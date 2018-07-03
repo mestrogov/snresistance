@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
 from app import logging
-from app.bot import bot as bot
 from app.remote.postgresql import Psql as psql
 from ast import literal_eval
+from telegram.ext.dispatcher import run_async
 import logging
 import asyncio
 
 
-def addcommunity(message):
+@run_async
+def addcommunity(bot, message):
     try:
+        message = message.message
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -56,8 +58,10 @@ def addcommunity(message):
         return e
 
 
-def removecommunity(message):
+@run_async
+def removecommunity(bot, message):
     try:
+        message = message.message
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 

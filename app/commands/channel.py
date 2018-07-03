@@ -2,26 +2,27 @@
 
 from app import logging
 from app import config as config
-from app.bot import bot as bot
 from app.remote.postgresql import Psql as psql
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext.dispatcher import run_async
 from shutil import copyfileobj
 from os import remove
 from secrets import token_hex
 from calendar import timegm
-from telebot import types
 from datetime import datetime
 import logging
 import asyncio
 import requests
 
 
-def addchannel(message):
+@run_async
+def addchannel(bot, message):
     try:
-        markup = types.InlineKeyboardMarkup(row_width=1)
-        markup.add(
-            types.InlineKeyboardButton(text='Превратить канал',
-                                       switch_inline_query="!initiateChannel 1243|1234"),
-        )
+        message = message.message
+        markup = [[
+            InlineKeyboardButton(text='Превратить канал', switch_inline_query="!initiateChannel 1243|1234")
+        ]]
+        markup = InlineKeyboardMarkup(markup)
         bot.send_message(message.from_user.id,
                          "Вы решили создать канал, добавьте меня в него и напишите команду: "
                          "`/initchannel@SNResistance {0}_id`",
@@ -39,12 +40,10 @@ def addchannel(message):
         return e
 
 
-def initiatechannel(message):
+@run_async
+def initiatechannel(bot, message):
     try:
-        print("----------")
-        print("Channel Name: " + str(message.chat.title))
-        print("Channel ID: " + str(message.chat.id))
-
+        message = message.message
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 

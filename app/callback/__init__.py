@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 
-from app import remote
 from app import logging
-from app.bot import bot as bot
 from app.utils.post_statistics import statistics as postStatistics
 from app.remote.postgresql import Psql as psql
 from app.remote.redis import Redis as redis
-from app import commands as commands
-from telebot import types
+from telegram.ext.dispatcher import run_async
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from app.commands.start import start_menu as startMenu
 from datetime import datetime
 import logging
 import asyncio
 import requests
 
 
-def callback_query(call):
+@run_async
+def callback_query(bot, call):
     try:
+        call = call.callback_query
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -23,13 +24,14 @@ def callback_query(call):
             if call.data == "exit_to_start_menu":
                 bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
                 # noinspection PyUnresolvedReferences
-                commands.start.startmenu(message=call)
+                startMenu(bot, call)
             if call.data == "start_vk_import":
-                markup = types.InlineKeyboardMarkup(row_width=1)
-                markup.add(
-                    types.InlineKeyboardButton("Импортировать", url="google.com"),
-                    types.InlineKeyboardButton("❌  Отменить", callback_data="exit_to_start_menu")
-                )
+                markup = [
+                    [InlineKeyboardButton("Импортировать", url="google.com")],
+                    [InlineKeyboardButton("❌  Отменить", callback_data="exit_to_start_menu")]
+                ]
+                markup = InlineKeyboardMarkup(markup)
+
                 bot.edit_message_text(
                     "Обратите внимание, что при импортировании сообществ будет автоматически "
                     "запрошен доступ к стене, это необходимо для получения самих публикаций. "
@@ -52,29 +54,29 @@ def callback_query(call):
 
                 if data_splitted[0] == "time":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="🕒 Точное время публикации данного поста: {0} MSK.".format(
+                                              text="🕒 Время публикации данного поста: {0} MSK.".format(
                                                   str(datetime.fromtimestamp(
                                                       int(counter_data_splitted)).strftime("%d.%m.%y, %H:%M:%S"))),
                                               show_alert=True, cache_time=30)
                 elif data_splitted[0] == "likes":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="💖 Точное количество лайков: {0}.".format(
+                                              text="💖 Количество лайков: {0}.".format(
                                                   str(counter_data_splitted), show_alert=True, cache_time=30))
                 elif data_splitted[0] == "comments":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="💬 Точное количество комментариев: {0}.".format(
+                                              text="💬 Количество комментариев: {0}.".format(
                                                   str(counter_data_splitted), show_alert=True, cache_time=30))
                 elif data_splitted[0] == "reposts":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="🔁 Точное количество репостов: {0}.".format(
+                                              text="🔁 Количество репостов: {0}.".format(
                                                   str(counter_data_splitted), show_alert=True, cache_time=30))
                 elif data_splitted[0] == "views":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="👁 Точное количество просмотров: {0}.".format(
+                                              text="👁 Количество просмотров: {0}.".format(
                                                   str(counter_data_splitted), show_alert=True, cache_time=30))
                 elif data_splitted[0] == "poll_answers":
                     bot.answer_callback_query(callback_query_id=call.id,
-                                              text="❎ Точное количество голосов за данный вариант ответа: {0}.".format(
+                                              text="❎ Количество голосов за данный вариант ответа: {0} 👍🏻.".format(
                                                   str(counter_data_splitted), show_alert=True, cache_time=30))
             elif call.data.startswith("channel_refresh_counters"):
                 data_splitted = call.data.replace("channel_refresh_counters_", "", 1).split("|")
@@ -101,7 +103,7 @@ def callback_query(call):
                                              "access_token": token,
                                              "v": "5.78"
                                          }).json()['response']['items'][0]
-                    stats_status = postStatistics(posts=post, chat_id=call.message.json['chat']['id'],
+                    stats_status = postStatistics(bot, posts=post, chat_id=call.message.json['chat']['id'],
                                                   message_id=call.message.json['message_id'], mtype="update")
                     if stats_status == "OK" or stats_status == "IS NOT MODIFIED":
                         bot.answer_callback_query(callback_query_id=call.id,
@@ -121,13 +123,5 @@ def callback_query(call):
                                               show_alert=True, cache_time=30)
             bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
     except Exception as e:
-        try:
-            bot.send_message(call.from_user.id,
-                             "❗ *Извините, что-то пошло не так, но в скором времени все исправится. "
-                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
-                             parse_mode="Markdown")
-        except:
-            pass
-
         logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
         return e

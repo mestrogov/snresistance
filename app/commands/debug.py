@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
 from app import logging
-from app.bot import bot as bot
 from app.remote.postgresql import Psql as psql
+from telegram.ext.dispatcher import run_async
 import logging
 import asyncio
 
 
-def debug(message):
+@run_async
+def debug(bot, message):
     try:
+        message = message.message
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 

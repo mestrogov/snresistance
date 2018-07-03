@@ -1,23 +1,31 @@
 # -*- coding: utf-8 -*-
 
-
 from app import logging
 from app import config as config
-from app.bot import bot as bot
-from app.utils.post_statistics import statistics as postStatistics
 from app.remote.postgresql import Psql as psql
-from telebot import types
+from app.utils.post_statistics import statistics as postStatistics
+from telegram import InputMediaPhoto
+from telegram.ext.dispatcher import run_async
+from telegram.utils.helpers import escape_markdown
 from operator import itemgetter
-from ast import literal_eval
 import logging
 import asyncio
 import requests
 import time
 
 
+try:
+    # noinspection PyUnresolvedReferences
+    from app.bot import bot_configuration as botConfiguration
+except ImportError:
+    logging.debug("bot_configuration is already imported in the other module, skipped.")
+
+
+@run_async
 def polling():
     while True:
         try:
+            bot = botConfiguration()
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
@@ -25,9 +33,9 @@ def polling():
                 'SELECT id, owner_id, community_id FROM channels;',
             ))
 
-            time.sleep(1)
-
             for num in range(len(communities)):
+                time.sleep(0.5)
+
                 vk_token = loop.run_until_complete(psql.fetchrow(
                     'SELECT vk_token FROM users WHERE id = $1;',
                     communities[num]['owner_id']
@@ -64,13 +72,6 @@ def polling():
                     except:
                         pass
 
-                    if not config.developerMode:
-                        loop.run_until_complete(psql.execute(
-                            'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
-                            'RETURNING "chat_id", "community_id", "post_id";',
-                            int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
-                        ))
-
                     """
                     # VK URL Parsing
                     post_text = posts['response']['items'][num]['text']
@@ -93,18 +94,6 @@ def polling():
                             post_text = post_text.replace(_t, "")
                     except:
                         pass
-
-                    "\n\n\n❗️К данной публикации что-то прикреплено, "
-                                     "[перейдите на этот пост во ВКонтакте]"
-                                     "(https://vk.com/{0}?w=wall-{1}_{2}) для его корректного и "
-                                     "полного отображения."
-                    posts['response']['groups'][0]['screen_name'], posts['response']['groups'][0]['id'], 
-                    posts['response']['items'][num]['id']
-
-                    img1 = 'https://i.imgur.com/CjXjcnU.png'
-                    img2 = 'https://i.imgur.com/CjXjcnU.png'
-                    medias = [types.InputMediaPhoto(img1), types.InputMediaPhoto(img2)]
-                    bot.send_media_group(message.from_user.id, medias)
                     """
 
                     attachments = None
@@ -128,8 +117,9 @@ def polling():
                                 if posts[pnum]['attachments'][anum]['type'] == "photo":
                                     sorted_sizes = sorted(posts[pnum]['attachments'][anum]['photo']['sizes'],
                                                           key=itemgetter('width'))
-                                    photos.extend([types.InputMediaPhoto(sorted_sizes[-1]['url'])])
+                                    photos.extend([InputMediaPhoto(sorted_sizes[-1]['url'])])
                                 elif posts[pnum]['attachments'][anum]['type'] == "video":
+                                    time.sleep(0.5)
                                     video = requests.post("https://api.vk.com/method/video.get",
                                                           data={
                                                               "videos": str(
@@ -142,7 +132,6 @@ def polling():
                                                               "v": "5.80"
                                                           }).json()['response']
                                     video = video['items'][0]
-
                                     try:
                                         video_platform = str(video['platform'])
                                     except:
@@ -170,18 +159,19 @@ def polling():
                             logging.debug("There is no attachments in this post: " + str(posts[pnum]['owner_id']) +
                                           "_" + str(posts[pnum]['id']) + ".")
                     except Exception as e:
-                        logging.error("Exception has been occurred while trying to execute the method.",
+                        logging.error("Exception has been occurred while trying to execute attachments check.",
                                       exc_info=True)
 
                     # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
-                    markup, poll = postStatistics(posts=posts[pnum], chat_id=communities[num]['id'], mtype="initiate")
+                    markup, poll = postStatistics(bot,
+                                                  posts=posts[pnum], chat_id=communities[num]['id'], mtype="initiate")
 
                     template_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                     "\n\n{3}".format(
                                          posts_original['groups'][0]['screen_name'],
                                          posts_original['groups'][0]['id'],
                                          posts[pnum]['id'],
-                                         posts[pnum]['text']
+                                         str(escape_markdown(posts[pnum]['text']))
                                      )
                     formatted_text = template_text
                     if attachments:
@@ -211,7 +201,7 @@ def polling():
                             for auint in range(len(audios)):
                                 formatted_text = formatted_text + \
                                                  "\n{0}. Аудиозапись — [{1} — {2}](https://soundcloud.com/" \
-                                                 "search?q={1} {2}) — SoundCloud".format(
+                                                 "search?q={1}-{2}) — SoundCloud".format(
                                                      str(int(aint)), str(audios[auint]['artist']),
                                                      str(audios[auint]['title']))
                                 aint += 1
@@ -227,17 +217,29 @@ def polling():
                             ), 1)
 
                     # channel.fix_markdown(posts[pnum]['text']))
-                    if videos or links:
-                        message = bot.send_message(communities[num]['id'], formatted_text, reply_markup=markup,
-                                                   parse_mode="Markdown")
-                    else:
-                        message = bot.send_message(communities[num]['id'], formatted_text,
-                                                   disable_web_page_preview=True, reply_markup=markup,
-                                                   parse_mode="Markdown")
-                    if photos:
-                        bot.send_media_group(communities[num]['id'], photos,
-                                             reply_to_message_id=message.message_id)
-                    time.sleep(1.25)
+                    try:
+                        if videos or links:
+                            message = bot.send_message(communities[num]['id'], formatted_text, reply_markup=markup,
+                                                       parse_mode="Markdown")
+                        else:
+                            message = bot.send_message(communities[num]['id'], formatted_text,
+                                                       disable_web_page_preview=True, reply_markup=markup,
+                                                       parse_mode="Markdown")
+                        if photos:
+                            bot.send_media_group(communities[num]['id'], photos,
+                                                 reply_to_message_id=message.message_id)
+
+                        if not config.developerMode:
+                            loop.run_until_complete(psql.execute(
+                                'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
+                                'RETURNING "chat_id", "community_id", "post_id";',
+                                int(communities[num]['id']), int(posts[pnum]['owner_id']), int(posts[pnum]['id'])
+                            ))
+                        time.sleep(1)
+                    except Exception as e:
+                        logging.error("Exception has been occurred while trying to send message to the channel.",
+                                      exc_info=True)
+                        continue
             time.sleep(900)
         except Exception as e:
             logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
