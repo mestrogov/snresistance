@@ -52,10 +52,10 @@ def polling():
                                       }).json()
 
                 posts_original = posts['response']
-                posts = posts['response']['items']
+                posts_allitems = posts['response']['items']
 
-                for pnum in range(len(posts)):
-                    posts = posts[pnum]
+                for pnum in range(len(posts_allitems)):
+                    posts = posts_allitems[pnum]
                     is_posted = loop.run_until_complete(psql.fetchrow(
                         'SELECT post_id FROM posts WHERE chat_id = $1 AND community_id = $2 AND post_id = $3;',
                         int(communities[num]['id']), int(posts['owner_id']), int(posts['id'])
@@ -215,7 +215,6 @@ def polling():
                     except Exception as e:
                         logging.error("Exception has been occurred while trying to send message to the channel.",
                                       exc_info=True)
-                        continue
             time.sleep(900)
         except Exception as e:
             logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)

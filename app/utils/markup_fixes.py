@@ -37,8 +37,8 @@ def md_convert_links(source_text):
             except IndexError:
                 pass
             link_splitted = link.split("|")
-            replace_link = "\[" + str(link_splitted[0]) + "|" + str(link_splitted[1]) + "]".strip()
-            response_link = "[" + str(link_splitted[0]) + "](https://" + str(link_splitted[1]) + ")".strip()
+            replace_link = "\[" + str(link_splitted[0]) + "|" + str(link_splitted[1]) + "]"
+            response_link = "[" + str(link_splitted[1]) + "](https://vk.com/" + str(link_splitted[0]) + ")"
             source_text = source_text.replace(replace_link, response_link)
         except IndexError:
             continue
