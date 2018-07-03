@@ -85,7 +85,7 @@ def callback_query(bot, call):
                     redis.execute("TTL", "channel_counters|{0}".format(str(data_splitted[1]))))
                 if int(cached) <= 0:
                     owner_id = loop.run_until_complete(psql.fetchrow('SELECT owner_id FROM channels WHERE id = $1;',
-                                                                     int(call.message.json['chat']['id'])))['owner_id']
+                                                                     int(call.message.chat.id)))['owner_id']
                     token = loop.run_until_complete(psql.fetchrow(
                         'SELECT vk_token FROM users WHERE id = $1;',
                         int(owner_id)
@@ -103,8 +103,8 @@ def callback_query(bot, call):
                                              "access_token": token,
                                              "v": "5.78"
                                          }).json()['response']['items'][0]
-                    stats_status = postStatistics(bot, posts=post, chat_id=call.message.json['chat']['id'],
-                                                  message_id=call.message.json['message_id'], mtype="update")
+                    stats_status = postStatistics(bot, posts=post, chat_id=call.message.chat.id,
+                                                  message_id=call.message.message_id, mtype="update")
                     if stats_status == "OK" or stats_status == "IS NOT MODIFIED":
                         bot.answer_callback_query(callback_query_id=call.id,
                                                   text="✅ Статистика данной публикации была успешно обновлена! "

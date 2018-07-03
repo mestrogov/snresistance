@@ -4,6 +4,7 @@ from app import logging
 from app.remote.redis import Redis as redis
 from telegram.ext import run_async
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest
 from datetime import datetime
 from ast import literal_eval
 from math import ceil
@@ -108,16 +109,16 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
         if mtype == "initiate":
             return markup, poll
         elif mtype == "update":
-            bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=markup)
-            """
             try:
+                bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=markup)
                 return "OK"
-            except apihelper.ApiException as e:
-                if "Bad Request: message is not modified" in str(e):
+            except BadRequest as e:
+                if "Message is not modified" in str(e):
                     return "IS NOT MODIFIED"
                 else:
+                    logging.error("Exception BadRequest has been occurred while trying to edit message markup.",
+                                  exc_info=True)
                     return "ERROR"
-            """
     except Exception as e:
         logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
         return e
