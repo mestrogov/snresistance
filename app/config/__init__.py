@@ -4,15 +4,15 @@ botToken = "575841584:AAFtrQNHO9JHUZJGobWh6-tI0sCxSSY20m4"
 developerMode = True
 
 # Database Credentials
-databaseHost = "192.168.90.100"
-databasePort = 32768
+databaseHost = "127.0.0.1"
+databasePort = 5432
 databaseName = "SNResistance"
 databaseUsername = "postgres"
 databasePassword = ""
 
 # Redis Credentials
-redisHost = "192.168.90.100"
-redisPort = 32769
+redisHost = "127.0.0.1"
+redisPort = 6379
 redisPassword = ""
 
 startMessage = \
