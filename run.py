@@ -26,6 +26,7 @@ if __name__ == "__main__":
                     logging.getLogger(logger).setLevel(logging.WARNING)
             logging.debug("Ignoring these Modules' Loggers: " + str(ignoredModulesLoggers) + '.')
 
+        asyncio.get_event_loop().run_until_complete(psql.create_tables())
         asyncio.get_event_loop().run_until_complete(psql.connection())
         asyncio.get_event_loop().run_until_complete(redis.connection())
 

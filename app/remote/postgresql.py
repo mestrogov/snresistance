@@ -10,6 +10,7 @@ class Psql:
     @staticmethod
     async def connection():
         try:
+
             response = await Psql.fetchrow("SELECT pong FROM ping WHERE pong = TRUE;")
 
             logging.info("The connection to the PostgreSQL can be established successfully.")
@@ -72,4 +73,51 @@ class Psql:
         except Exception as e:
             logging.error("Exception has been occurred while trying to fetch row of data "
                           "from PostgreSQL.", exc_info=True)
+            return e
+
+    @staticmethod
+    async def create_tables():
+        try:
+            try:
+                ping_response = await Psql.execute(
+                    'CREATE TABLE IF NOT EXISTS "public"."ping" ("pong" boolean DEFAULT true, PRIMARY KEY ("pong"));'
+                )
+                logging.debug("Table ping was created successfully, response: " + str(ping_response) + ".")
+            except Exception as e:
+                logging.critical("Couldn't create table ping.", exc_info=True)
+
+            try:
+                users_response = await Psql.execute(
+                    'CREATE TABLE IF NOT EXISTS "public"."users" ("id" int, "admin" boolean NOT NULL DEFAULT false, '
+                    '"paid_account" boolean NOT NULL DEFAULT false, "communities" text, "access_token" text, '
+                    'PRIMARY KEY ("id"));'
+                )
+                logging.debug("Table users was created successfully, response: " + str(users_response) + ".")
+            except Exception as e:
+                logging.critical("Couldn't create table users.", exc_info=True)
+
+            try:
+                channels_response = await Psql.execute(
+                    'CREATE TABLE IF NOT EXISTS "public"."channels" ("id" bigint, "owner_id" int NOT NULL, '
+                    '"community_id" int NOT NULL, PRIMARY KEY ("id"));'
+                )
+                logging.debug("Table channels was created successfully, response: " + str(channels_response) + ".")
+            except Exception as e:
+                logging.critical("Couldn't create table channels.", exc_info=True)
+
+            try:
+                posts_response = await Psql.execute(
+                    'CREATE TABLE IF NOT EXISTS "public"."posts" ("chat_id" bigint, "community_id" int NOT NULL, '
+                    '"post_id" int NOT NULL, PRIMARY KEY ("chat_id"));'
+                )
+                logging.debug("Table posts was created successfully, response: " + str(posts_response) + ".")
+            except Exception as e:
+                logging.critical("Couldn't create table posts.", exc_info=True)
+
+            logging.info("All missing tables were created successfully.")
+
+            return "OK"
+        except Exception as e:
+            logging.error("Exception has been occurred while trying to create tables in the PostgreSQL "
+                          "database.", exc_info=True)
             return e
