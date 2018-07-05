@@ -15,8 +15,8 @@ import requests
 @run_async
 def inline_query(bot, query):
     query = query.inline_query
-    if str(query.query).startswith("Initialize Channel: "):
-        pass
+    if str(query.query).startswith("Initialize Channel: #"):
+        community = str(query.query).replace("Initialize Channel: #", "")
     else:
         results = [
             InlineQueryResultArticle(

@@ -20,12 +20,14 @@ def addchannel(bot, message):
     try:
         message = message.message
         markup = [[
-            InlineKeyboardButton(text='Превратить канал', switch_inline_query="!initiateChannel 1243|1234")
+            InlineKeyboardButton(text='Настроить канал', switch_inline_query="Initialize Channel: #{0}".format(
+                str(message.text).replace("/addchannel ", "")
+            ))
         ]]
         markup = InlineKeyboardMarkup(markup)
         bot.send_message(message.from_user.id,
-                         "Вы решили создать канал, добавьте меня в него и напишите команду: "
-                         "`/initchannel@SNResistance {0}_id`",
+                         "Благодарю за возникший интерес к созданию собственного канала для репостинга публикаций из "
+                         "данного сообщества. Нажмите на кнопку ниже, чтобы продолжить.",
                          parse_mode="Markdown", reply_markup=markup)
     except Exception as e:
         try:
