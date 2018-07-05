@@ -14,10 +14,14 @@ def debug(bot, message):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        is_paid = loop.run_until_complete(psql.fetchrow(
-            'SELECT is_paid FROM users WHERE id = $1;',
+        admin = loop.run_until_complete(psql.fetchrow(
+            'SELECT admin FROM users WHERE id = $1;',
             message.from_user.id
-        ))['is_paid']
+        ))['admin']
+        paid_account = loop.run_until_complete(psql.fetchrow(
+            'SELECT paid_account FROM users WHERE id = $1;',
+            message.from_user.id
+        ))['paid_account']
         communities = loop.run_until_complete(psql.fetchrow(
             'SELECT communities FROM users WHERE id = $1;',
             message.from_user.id
@@ -32,10 +36,11 @@ def debug(bot, message):
                          "\nMessage ID: `{1}`"
                          "\nLanguage Code: `{2}`"
                          "\n\n*Database:*"
-                         "\nIs Paid: `{3}`"
-                         "\nCommunities: `{4}`".format(
+                         "\nAdmin: `{3}`"
+                         "\nPaid Account: `{4}`"
+                         "\nCommunities: `{5}`".format(
                             str(message.from_user.id), str(message.message_id),
-                            str(message.from_user.language_code), str(is_paid), str(communities)
+                            str(message.from_user.language_code), str(admin), str(paid_account), str(communities)
                          ), parse_mode="Markdown")
     except Exception as e:
         try:

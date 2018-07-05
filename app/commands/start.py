@@ -26,7 +26,8 @@ def start(bot, message):
         start_menu(bot, message)
 
         loop.run_until_complete(psql.execute(
-            'INSERT INTO users("id") VALUES($1) RETURNING "id", "is_paid", "vk_token", "communities";',
+            'INSERT INTO users("id") VALUES($1) RETURNING "id", "admin", "paid_account", "communities", '
+            '"access_token";',
             message.from_user.id
         ))
     except Exception as e:

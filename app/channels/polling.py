@@ -36,10 +36,10 @@ def polling():
             for num in range(len(communities)):
                 time.sleep(0.5)
 
-                vk_token = loop.run_until_complete(psql.fetchrow(
-                    'SELECT vk_token FROM users WHERE id = $1;',
+                access_token = loop.run_until_complete(psql.fetchrow(
+                    'SELECT access_token FROM users WHERE id = $1;',
                     communities[num]['owner_id']
-                ))['vk_token']
+                ))['access_token']
 
                 posts = requests.post("https://api.vk.com/method/wall.get",
                                       data={
@@ -47,7 +47,7 @@ def polling():
                                           "count": 3,
                                           "filter": "all",
                                           "extended": 1,
-                                          "access_token": vk_token,
+                                          "access_token": access_token,
                                           "v": "5.80"
                                       }).json()
 

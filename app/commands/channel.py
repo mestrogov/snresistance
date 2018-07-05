@@ -53,21 +53,20 @@ def initiatechannel(bot, message):
                 command[1] = command[1].replace("public", "club", 1)
 
             user_id = int(command[0])
-            user_vktoken = loop.run_until_complete(psql.fetchrow(
-                'SELECT vk_token FROM users WHERE id = $1;',
+            access_token = loop.run_until_complete(psql.fetchrow(
+                'SELECT access_token FROM users WHERE id = $1;',
                 int(user_id)
-            ))['vk_token']
+            ))['access_token']
 
             community = requests.post("https://api.vk.com/method/groups.getById",
                                       data={
                                           "group_id": str(command[1]),
                                           "fields": "description",
-                                          "access_token": str(user_vktoken),
-                                          "v": "5.78"
+                                          "access_token": str(access_token),
+                                          "v": "5.80"
                                       }).json()['response'][0]
 
             channel_id = message.chat.id
-            initiation_date = timegm(datetime.utcnow().utctimetuple())
 
             try:
                 bot.set_chat_title(channel_id, community['name'])
@@ -110,9 +109,9 @@ def initiatechannel(bot, message):
             bot.set_chat_description(channel_id, config.channelDescription)
 
             loop.run_until_complete(psql.execute(
-                'INSERT INTO channels("id", "owner_id", "community_id", "initiation_date") '
-                'VALUES($1, $2, $3, $4) RETURNING "id", "owner_id", "community_id", "initiation_date";',
-                int(channel_id), int(user_id), int(community['id']), int(initiation_date)
+                'INSERT INTO channels("id", "owner_id", "community_id") '
+                'VALUES($1, $2, $3, $4) RETURNING "id", "owner_id", "community_id";',
+                int(channel_id), int(user_id), int(community['id'])
              ))
 
             bot.send_message(int(user_id),

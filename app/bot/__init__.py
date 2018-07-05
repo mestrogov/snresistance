@@ -3,14 +3,15 @@
 
 from app import logging
 from app import config as config
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, InlineQueryHandler
 from telegram import Bot
 from app.commands.start import start as start_command
 from app.commands.debug import debug as debug_command
 from app.commands.communities import addcommunity as addcommunity_command
 from app.commands.communities import removecommunity as removecommunity_command
 from app.commands.channel import addchannel as addchannel_command
-from app.callback import callback_query as callback_query
+from app.query_handlers import callback as callback_query
+from app.query_handlers.inline import inline_query as inline_query
 import logging
 
 
@@ -26,6 +27,7 @@ def bot_initialize():
         dp.add_handler(CommandHandler("removecommunity", removecommunity_command))
         dp.add_handler(CommandHandler("addchannel", addchannel_command))
         dp.add_handler(CallbackQueryHandler(callback_query))
+        dp.add_handler(InlineQueryHandler(inline_query))
         dp.add_error_handler(error_handler)
 
         botUpdater.start_polling(clean=True)

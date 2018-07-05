@@ -47,7 +47,7 @@ def callback_query(bot, call):
                     parse_mode="Markdown", chat_id=call.from_user.id, message_id=call.message.message_id
                 )
             elif call.data == "start_menu_next":
-                logging.warning("The temporary stub for callback with start_menu_next data.")
+                pass
             elif call.data.startswith("channel_counters_"):
                 data_splitted = call.data.replace("channel_counters_", "", 1).split("|")
                 counter_data_splitted = data_splitted[2]
@@ -86,10 +86,10 @@ def callback_query(bot, call):
                 if int(cached) <= 0:
                     owner_id = loop.run_until_complete(psql.fetchrow('SELECT owner_id FROM channels WHERE id = $1;',
                                                                      int(call.message.chat.id)))['owner_id']
-                    token = loop.run_until_complete(psql.fetchrow(
-                        'SELECT vk_token FROM users WHERE id = $1;',
+                    access_token = loop.run_until_complete(psql.fetchrow(
+                        'SELECT access_token FROM users WHERE id = $1;',
                         int(owner_id)
-                    ))['vk_token']
+                    ))['access_token']
 
                     ids_data_splitted = data_splitted[1].split("_")
                     post = requests.post("https://api.vk.com/method/wall.getById",
@@ -100,7 +100,7 @@ def callback_query(bot, call):
                                              ),
                                              "copy_history_depth": 1,
                                              "extended": 1,
-                                             "access_token": token,
+                                             "access_token": access_token,
                                              "v": "5.80"
                                          }).json()['response']['items'][0]
                     stats_status = postStatistics(bot, posts=post, chat_id=call.message.chat.id,

@@ -37,8 +37,8 @@ def addcommunity(bot, message):
 
                 communities.extend([cm_url])
                 loop.run_until_complete(psql.execute(
-                    'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", '
-                    '"communities";',
+                    'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "admin", "paid_account", '
+                    '"communities", "access_token";',
                     str(communities), message.from_user.id
                 ))
         except Exception:
@@ -88,8 +88,8 @@ def removecommunity(bot, message):
 
                 communities.remove(cm_url)
                 loop.run_until_complete(psql.execute(
-                    'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "is_paid", "vk_token", '
-                    '"communities";',
+                    'UPDATE users SET "communities"=$1 WHERE "id"=$2 RETURNING "id", "admin", "paid_account", '
+                    '"communities", "access_token";',
                     str(communities), message.from_user.id
                 ))
         except Exception:
