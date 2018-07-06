@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from app import logging
-from app.remote.redis import Redis as redis
 from telegram.ext import run_async
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 from datetime import datetime
-from ast import literal_eval
+from time import time
 from math import ceil
 import logging
 import asyncio
@@ -20,6 +19,8 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
 
         poll = None
 
+        # TODO: Rewrite polls code
+        """
         try:
             try:
                 # noinspection PyStatementEffect
@@ -37,42 +38,45 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
                               "_" + str(posts['id']) + ".")
         except Exception as e:
             logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
+        """
+
+        for elm in ["time", "likes", "comments", "reposts", "views"]:
+            if elm is "time":
+                pass
+            else:
+                try:
+                    posts[elm]['count']
+                except KeyError:
+                    posts[elm]['count'] = 0
 
         markup = []
+
         markup.extend([
             [InlineKeyboardButton("🕒 {0}".format(
                 str(datetime.fromtimestamp(int(posts['date'])).strftime("%H:%M"))),
-                callback_data="channel_counters_time|{0}_{1}_{2}|{3}".format(
-                    str(chat_id), str(posts['owner_id']),
-                    str(posts['id']), str(posts['date'])))]
+                callback_data="channel_counters|time|{0}".format(str(posts['date'])))]
         ])
         markup.extend([[
             InlineKeyboardButton("💖 {0}".format(
                 (str(ceil(int(posts['likes']['count']) / 1000.0) * 1) + "K" if int(posts['likes']['count']) > 1000
                  else str(posts['likes']['count']))),
-                callback_data="channel_counters_likes|{0}_{1}_{2}|{3}".format(
-                    str(chat_id), str(posts['owner_id']),
-                    str(posts['id']), str(posts['likes']['count']))),
+                callback_data="channel_counters|likes|{0}".format(str(posts['likes']['count']))),
             InlineKeyboardButton("💬 {0}".format(
                 (str(ceil(int(posts['comments']['count']) / 1000.0) * 1) + "K" if int(posts['comments']['count']) > 1000
                  else str(posts['comments']['count']))),
-                callback_data="channel_counters_comments|{0}_{1}_{2}|{3}".format(
-                    str(chat_id), str(posts['owner_id']),
-                    str(posts['id']), str(posts['comments']['count']))),
+                callback_data="channel_counters|comments|{0}".format(str(posts['comments']['count']))),
             InlineKeyboardButton("🔁 {0}".format(
                 (str(ceil(int(posts['reposts']['count']) / 1000.0) * 1) + "K" if int(posts['reposts']['count']) > 1000
                  else str(posts['reposts']['count']))),
-                callback_data="channel_counters_reposts|{0}_{1}_{2}|{3}".format(
-                    str(chat_id), str(posts['owner_id']),
-                    str(posts['id']), str(posts['reposts']['count']))),
+                callback_data="channel_counters|reposts|{0}".format(str(posts['reposts']['count']))),
             InlineKeyboardButton("👁️ {0}".format(
                 (str(ceil(int(posts['views']['count']) / 1000.0) * 1) + "K" if int(posts['views']['count']) > 1000
                  else str(posts['views']['count']))),
-                callback_data="channel_counters_views|{0}_{1}_{2}|{3}".format(
-                    str(chat_id), str(posts['owner_id']),
-                    str(posts['id']), str(posts['views']['count'])))
+                callback_data="channel_counters|views|{0}".format(str(posts['views']['count']))),
         ]])
 
+        # TODO: Rewrite polls code
+        """
         if poll:
             markup.extend([
                 [InlineKeyboardButton("📋 {0}".format(
@@ -90,21 +94,14 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
                         callback_data="channel_counters_poll_answers|{0}_{1}_{2}|{3}".format(
                             str(chat_id), str(posts['owner_id']),
                             str(posts['id']), str(poll[0]['answers'][pint]['votes'])))]])
+        """
 
         markup.extend([
             [InlineKeyboardButton("🔄 Обновить статистику",
-                                  callback_data="channel_refresh_counters|{0}_{1}_{2}".format(
-                                      str(chat_id), str(posts['owner_id']), str(posts['id'])))]
-        ])
+                                  callback_data="channel_refresh_stats|{0}&{1}|{2}".format(
+                                      str(posts['owner_id']), str(posts['id']), str(int(int(time())) + 10)))]])
 
         markup = InlineKeyboardMarkup(markup)
-
-        loop.run_until_complete(redis.execute("SET", "channel_counters|{0}_{1}_{2}".format(
-            str(chat_id), str(posts['owner_id']), str(posts['id'])
-        ), "OK"))
-        loop.run_until_complete(redis.execute("EXPIRE", "channel_counters|{0}_{1}_{2}".format(
-            str(chat_id), str(posts['owner_id']), str(posts['id'])
-        ), "300"))
 
         if mtype == "initiate":
             return markup, poll

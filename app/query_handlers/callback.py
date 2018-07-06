@@ -3,11 +3,12 @@
 from app import logging
 from app.utils.post_statistics import statistics as postStatistics
 from app.remote.postgresql import Psql as psql
-from app.remote.redis import Redis as redis
+# from app.remote.redis import Redis as redis
 from telegram.ext.dispatcher import run_async
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from app.commands.start import start_menu as startMenu
 from datetime import datetime
+from time import time
 import logging
 import asyncio
 import requests
@@ -48,42 +49,42 @@ def callback_query(bot, call):
                 )
             elif call.data == "start_menu_next":
                 pass
-            elif call.data.startswith("channel_counters_"):
-                data_splitted = call.data.replace("channel_counters_", "", 1).split("|")
-                counter_data_splitted = data_splitted[2]
-
-                if data_splitted[0] == "time":
+            elif call.data.startswith("channel_counters"):
+                counter = call.data.split("|")
+                counter_name = counter[1]
+                counter_amount = counter[2]
+                if counter_name == "time":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="🕒 Время публикации данного поста: {0} MSK.".format(
                                                   str(datetime.fromtimestamp(
-                                                      int(counter_data_splitted)).strftime("%d.%m.%y, %H:%M:%S"))),
+                                                      int(counter_amount)).strftime("%d.%m.%y, %H:%M:%S"))),
                                               show_alert=True, cache_time=30)
-                elif data_splitted[0] == "likes":
+                elif counter_name == "likes":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="💖 Количество лайков: {0}.".format(
-                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
-                elif data_splitted[0] == "comments":
+                                                  str(counter_amount), show_alert=True, cache_time=30))
+                elif counter_name == "comments":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="💬 Количество комментариев: {0}.".format(
-                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
-                elif data_splitted[0] == "reposts":
+                                                  str(counter_amount), show_alert=True, cache_time=30))
+                elif counter_name == "reposts":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="🔁 Количество репостов: {0}.".format(
-                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
-                elif data_splitted[0] == "views":
+                                                  str(counter_amount), show_alert=True, cache_time=30))
+                elif counter_name == "views":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="👁 Количество просмотров: {0}.".format(
-                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
-                elif data_splitted[0] == "poll_answers":
+                                                  str(counter_amount), show_alert=True, cache_time=30))
+                elif counter_name == "poll_answers":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="❎ Количество голосов за данный вариант ответа: {0} 👍🏻.".format(
-                                                  str(counter_data_splitted), show_alert=True, cache_time=30))
-            elif call.data.startswith("channel_refresh_counters"):
-                data_splitted = call.data.replace("channel_refresh_counters_", "", 1).split("|")
+                                                  str(counter_amount), show_alert=True, cache_time=30))
+            elif call.data.startswith("channel_refresh_stats"):
+                stats = call.data.split("|")
+                pdata = stats[1]
+                expired = stats[2]
 
-                cached = loop.run_until_complete(
-                    redis.execute("TTL", "channel_counters|{0}".format(str(data_splitted[1]))))
-                if int(cached) <= 0:
+                if int(time()) >= int(expired):
                     owner_id = loop.run_until_complete(psql.fetchrow('SELECT owner_id FROM channels WHERE id = $1;',
                                                                      int(call.message.chat.id)))['owner_id']
                     access_token = loop.run_until_complete(psql.fetchrow(
@@ -91,21 +92,21 @@ def callback_query(bot, call):
                         int(owner_id)
                     ))['access_token']
 
-                    ids_data_splitted = data_splitted[1].split("_")
+                    pdata_splitted = str(pdata).split("&")
                     post = requests.post("https://api.vk.com/method/wall.getById",
                                          data={
                                              "posts": str(
-                                                 str(ids_data_splitted[1]) + "_" +
-                                                 str(ids_data_splitted[2])
+                                                 str(pdata_splitted[0]) + "_" +
+                                                 str(pdata_splitted[1])
                                              ),
                                              "copy_history_depth": 1,
                                              "extended": 1,
                                              "access_token": access_token,
                                              "v": "5.80"
                                          }).json()['response']['items'][0]
-                    stats_status = postStatistics(bot, posts=post, chat_id=call.message.chat.id,
-                                                  message_id=call.message.message_id, mtype="update")
-                    if stats_status == "OK" or stats_status == "IS NOT MODIFIED":
+                    update_status = postStatistics(bot, posts=post, chat_id=call.message.chat.id,
+                                                   message_id=call.message.message_id, mtype="update")
+                    if update_status == "OK" or update_status == "IS NOT MODIFIED":
                         bot.answer_callback_query(callback_query_id=call.id,
                                                   text="✅ Статистика данной публикации была успешно обновлена! "
                                                        "Обратите внимание, что клиенту потребуется до 30 секунд для "

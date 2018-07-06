@@ -43,18 +43,19 @@ def addchannel(bot, message):
 
 
 @run_async
-def initiatechannel(bot, message):
+def initializechannel(bot, message):
     try:
-        message = message.message
+        message = message.channel_post
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        if "!initiateChannel" in message.text:
-            command = message.text.replace("!initiateChannel", "").strip().split("|")
-            if command[1].startswith("public"):
-                command[1] = command[1].replace("public", "club", 1)
+        if "InitializeChannel|" in message.text:
+            channel_data = message.text.replace("InitializeChannel|", "").strip().split("|")
+            user_id = str(channel_data[0]).split("&", 1)[0]
+            community_id = str(channel_data[0]).split("&", 1)[1]
+            if community_id.startswith("public"):
+                community_id = community_id.replace("public", "club", 1)
 
-            user_id = int(command[0])
             access_token = loop.run_until_complete(psql.fetchrow(
                 'SELECT access_token FROM users WHERE id = $1;',
                 int(user_id)
@@ -62,7 +63,7 @@ def initiatechannel(bot, message):
 
             community = requests.post("https://api.vk.com/method/groups.getById",
                                       data={
-                                          "group_id": str(command[1]),
+                                          "group_id": str(community_id),
                                           "fields": "description",
                                           "access_token": str(access_token),
                                           "v": "5.80"
@@ -112,7 +113,7 @@ def initiatechannel(bot, message):
 
             loop.run_until_complete(psql.execute(
                 'INSERT INTO channels("id", "owner_id", "community_id") '
-                'VALUES($1, $2, $3, $4) RETURNING "id", "owner_id", "community_id";',
+                'VALUES($1, $2, $3) RETURNING "id", "owner_id", "community_id";',
                 int(channel_id), int(user_id), int(community['id'])
              ))
 

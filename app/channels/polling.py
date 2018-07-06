@@ -105,7 +105,7 @@ def polling():
                                                                   str(posts['attachments'][anum]['video']['id'])
                                                               ),
                                                               "extended": 1,
-                                                              "access_token": vk_token,
+                                                              "access_token": access_token,
                                                               "v": "5.80"
                                                           }).json()['response']
                                     video = video['items'][0]
@@ -140,8 +140,7 @@ def polling():
                                       exc_info=True)
 
                     # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
-                    markup, poll = postStatistics(bot,
-                                                  posts=posts, chat_id=communities[num]['id'], mtype="initiate")
+                    markup, poll = postStatistics(bot, posts=posts, chat_id=communities[num]['id'], mtype="initiate")
 
                     template_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                     "\n\n{3}".format(
@@ -159,10 +158,13 @@ def polling():
                                                                   "фотографии отправлены в ответе на данное "
                                                                   "сообщение.".format(str(aint)))
                             aint += 1
+                        # TODO: Rewrite polls
+                        """
                         if poll:
                             formatted_text = formatted_text + str("\n{0}. Опрос прикреплен в виде кнопок к этому "
                                                                   "сообщению.".format(str(aint)))
                             aint += 1
+                        """
                         if videos:
                             for vint in range(len(videos)):
                                 formatted_text = formatted_text + "\n{0}. Видеозапись — [{1}]({2}) — {3}".format(
