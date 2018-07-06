@@ -99,7 +99,7 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
         markup.extend([
             [InlineKeyboardButton("🔄 Обновить статистику",
                                   callback_data="channel_refresh_stats|{0}&{1}|{2}".format(
-                                      str(posts['owner_id']), str(posts['id']), str(int(int(time())) + 10)))]])
+                                      str(posts['owner_id']), str(posts['id']), str(int(int(time())) + 300)))]])
 
         markup = InlineKeyboardMarkup(markup)
 

@@ -84,6 +84,7 @@ class Psql:
                 )
             except Exception as e:
                 logging.critical("Couldn't create table ping.", exc_info=True)
+                return e
 
             try:
                 await Psql.execute(
@@ -93,6 +94,7 @@ class Psql:
                 )
             except Exception as e:
                 logging.critical("Couldn't create table users.", exc_info=True)
+                return e
 
             try:
                 await Psql.execute(
@@ -101,6 +103,7 @@ class Psql:
                 )
             except Exception as e:
                 logging.critical("Couldn't create table channels.", exc_info=True)
+                return e
 
             try:
                 await Psql.execute(
@@ -109,6 +112,7 @@ class Psql:
                 )
             except Exception as e:
                 logging.critical("Couldn't create table posts.", exc_info=True)
+                return e
 
             logging.info("All missing tables were created successfully (if there were any).")
 
