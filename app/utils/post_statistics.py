@@ -47,7 +47,7 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
                 try:
                     posts[elm]['count']
                 except KeyError:
-                    posts[elm]['count'] = 0
+                    posts[elm] = {"count": 0}
 
         markup = []
 
