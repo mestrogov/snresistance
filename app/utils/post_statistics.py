@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from app import logging
+from app.remote.redis import Redis as redis
 from telegram.ext import run_async
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 from datetime import datetime
+from uuid import uuid4
+from ast import literal_eval
 from time import time
 from math import ceil
 import logging
@@ -12,6 +15,7 @@ import asyncio
 
 
 # @run_async
+# noinspection PyTypeChecker,PyStatementEffect
 def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
     try:
         loop = asyncio.new_event_loop()
@@ -19,11 +23,8 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
 
         poll = None
 
-        # TODO: Rewrite polls code
-        """
         try:
             try:
-                # noinspection PyStatementEffect
                 posts['attachments']
 
                 poll = []
@@ -34,11 +35,10 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
                                       "answers": literal_eval(
                                           str(posts['attachments'][anum]['poll']['answers']))}])
             except KeyError:
-                logging.debug("There is no attachments in this post: " + str(posts['owner_id']) +
-                              "_" + str(posts['id']) + ".")
+                logging.debug("KeyError Exception has been occurred, most likely the post doesn't have "
+                              "any attachments.", exc_info=True)
         except Exception as e:
             logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
-        """
 
         for elm in ["time", "likes", "comments", "reposts", "views"]:
             if elm is "time":
@@ -75,26 +75,40 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
                 callback_data="channel_counters|views|{0}".format(str(posts['views']['count']))),
         ]])
 
-        # TODO: Rewrite polls code
-        """
         if poll:
+            poll_uuid = uuid4()
+            try:
+                poll[0]['question'][31]
+                poll_question = str(poll[0]['question'][0:30]) + "..."
+            except IndexError:
+                poll_question = str(poll[0]['question'][0:30])
+
             markup.extend([
                 [InlineKeyboardButton("📋 {0}".format(
-                    str(poll[0]['question'])),
-                    callback_data="channel_polls")]
-            ])
+                    str(poll_question)),
+                    callback_data="channel_counters|poll|{0}".format(str(poll_uuid)))]])
+            loop.run_until_complete(redis.execute("SET", str("poll&" + str(poll_uuid)), str(poll[0]['question'])))
+            logging.debug("Poll UUID: " + str(poll_uuid))
+
             for pint in range(len(poll[0]['answers'])):
-                # noinspection PyTypeChecker
+                pollanswer_uuid = uuid4()
+                try:
+                    poll[0]['answers'][pint]['text'][31]
+                    poll_question = str(poll[0]['answers'][pint]['text'][0:30]) + "..."
+                except IndexError:
+                    poll_question = str(poll[0]['answers'][pint]['text'][0:30])
+
                 markup.extend([[
                     InlineKeyboardButton("❎ {0} — {1} 👍🏻".format(
-                        str(poll[0]['answers'][pint]['text']),
+                        str(poll_question),
                         (str(ceil(int(poll[0]['answers'][pint]['votes']) / 1000.0) * 1) + "K" if int(
                             poll[0]['answers'][pint]['votes']) > 1000
                          else str(poll[0]['answers'][pint]['votes']))),
-                        callback_data="channel_counters_poll_answers|{0}_{1}_{2}|{3}".format(
-                            str(chat_id), str(posts['owner_id']),
-                            str(posts['id']), str(poll[0]['answers'][pint]['votes'])))]])
-        """
+                        callback_data="channel_counters|poll_ans|{0}".format(
+                            str(pollanswer_uuid)))]])
+                loop.run_until_complete(redis.execute("SET", str("poll_answer&" + str(pollanswer_uuid)), str(
+                    str(poll[0]['answers'][pint]['text']) + "&" + str(poll[0]['answers'][pint]['votes']))))
+                logging.debug("Poll Answer UUID: " + str(pollanswer_uuid))
 
         markup.extend([
             [InlineKeyboardButton("🔄 Обновить статистику",
@@ -104,7 +118,7 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
         markup = InlineKeyboardMarkup(markup)
 
         if mtype == "initiate":
-            return markup, poll
+            return markup
         elif mtype == "update":
             try:
                 bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=markup)

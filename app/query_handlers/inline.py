@@ -13,7 +13,7 @@ import requests
 
 
 @run_async
-def inline_query(bot, query):
+def inline(bot, query):
     query = query.inline_query
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)

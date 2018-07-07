@@ -44,7 +44,7 @@ def polling():
                 posts = requests.post("https://api.vk.com/method/wall.get",
                                       data={
                                           "owner_id": str("-" + str(communities[num]['community_id'])),
-                                          "count": 3,
+                                          "count": 5,
                                           "filter": "all",
                                           "extended": 1,
                                           "access_token": access_token,
@@ -119,6 +119,7 @@ def polling():
                                             str(video['player']).split("/embed/", 1)[1].split("?__ref=", 1)[0].strip()
                                         )
                                     else:
+                                        # TODO: Make VK Video URL available to mobile OSes
                                         video_url = "https://vk.com/video{0}_{1}".format(
                                             str(video['owner_id']), str(video['id'])
                                         )
@@ -133,14 +134,14 @@ def polling():
                                     links.extend([{"title": str(posts['attachments'][anum]['link']['title']),
                                                    "url": str(posts['attachments'][anum]['link']['url'])}])
                         except KeyError:
-                            logging.debug("There is no attachments in this post: " + str(posts['owner_id']) +
-                                          "_" + str(posts['id']) + ".")
+                            logging.debug("KeyError Exception has been occurred, most likely the post doesn't have "
+                                          "any attachments.", exc_info=True)
                     except Exception as e:
                         logging.error("Exception has been occurred while trying to execute attachments check.",
                                       exc_info=True)
 
                     # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
-                    markup, poll = postStatistics(bot, posts=posts, chat_id=communities[num]['id'], mtype="initiate")
+                    markup = postStatistics(bot, posts=posts, chat_id=communities[num]['id'], mtype="initiate")
 
                     template_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
                                     "\n\n{3}".format(
@@ -151,20 +152,9 @@ def polling():
                                      )
                     formatted_text = template_text
                     if attachments:
-                        formatted_text = formatted_text + str("\n\n*Прикрепленные вложения к публикации:*")
+                        if videos or audios or links:
+                            formatted_text = formatted_text + str("\n\n*Прикрепленные вложения к публикации:*")
                         aint = 1
-                        if photos:
-                            formatted_text = formatted_text + str("\n{0}. Все прикрепленные к публикации "
-                                                                  "фотографии отправлены в ответе на данное "
-                                                                  "сообщение.".format(str(aint)))
-                            aint += 1
-                        # TODO: Rewrite polls
-                        """
-                        if poll:
-                            formatted_text = formatted_text + str("\n{0}. Опрос прикреплен в виде кнопок к этому "
-                                                                  "сообщению.".format(str(aint)))
-                            aint += 1
-                        """
                         if videos:
                             for vint in range(len(videos)):
                                 formatted_text = formatted_text + "\n{0}. Видеозапись — [{1}]({2}) — {3}".format(
@@ -172,10 +162,9 @@ def polling():
                                     str(videos[vint]['platform'])
                                 )
                                 aint += 1
-                            if not links:
-                                formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
-                                    videos[0]['url']
-                                ), 1)
+                            formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
+                                videos[0]['url']
+                            ), 1)
                         if audios:
                             for auint in range(len(audios)):
                                 formatted_text = formatted_text + \
@@ -187,13 +176,14 @@ def polling():
                         if links:
                             for lint in range(len(links)):
                                 formatted_text = formatted_text + \
-                                                 "\n{0}. Ссылка — [{1}]({2})".format(
+                                                 "\n{0}. Ссылка на сторонний сайт — [{1}]({2})".format(
                                                      str(int(aint)), str(links[lint]['title']),
                                                      str(links[lint]['url']))
                                 aint += 1
-                            formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
-                                links[0]['url']
-                            ), 1)
+                            if not videos:
+                                formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
+                                    links[0]['url']
+                                ), 1)
 
                     try:
                         if videos or links:

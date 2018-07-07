@@ -11,8 +11,8 @@ from app.commands.communities import addcommunity as addcommunity_command
 from app.commands.communities import removecommunity as removecommunity_command
 from app.commands.channel import addchannel as addchannel_command
 from app.commands.channel import initializechannel as initchannel_command
-from app.query_handlers.callback import callback_query as callback_query
-from app.query_handlers.inline import inline_query as inline_query
+from app.query_handlers.callback import callback as callback_query
+from app.query_handlers.inline import inline as inline_query
 import logging
 
 
