@@ -88,6 +88,7 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
                     str(poll_question)),
                     callback_data="channel_counters|poll|{0}".format(str(poll_uuid)))]])
             loop.run_until_complete(redis.execute("SET", str("poll&" + str(poll_uuid)), str(poll[0]['question'])))
+            loop.run_until_complete(redis.execute("EXPIRE", str("poll&" + str(poll_uuid)), 900))
             logging.debug("Poll UUID: " + str(poll_uuid))
 
             for pint in range(len(poll[0]['answers'])):
@@ -108,6 +109,7 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
                             str(pollanswer_uuid)))]])
                 loop.run_until_complete(redis.execute("SET", str("poll_answer&" + str(pollanswer_uuid)), str(
                     str(poll[0]['answers'][pint]['text']) + "?|&|&|!" + str(poll[0]['answers'][pint]['votes']))))
+                loop.run_until_complete(redis.execute("EXPIRE", str("poll_answer&" + str(pollanswer_uuid)), 900))
                 logging.debug("Poll Answer UUID: " + str(pollanswer_uuid))
 
         markup.extend([
