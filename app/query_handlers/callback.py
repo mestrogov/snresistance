@@ -14,28 +14,30 @@ import asyncio
 import requests
 
 
-def refresh_stats(bot, call):
+def refresh_stats(bot, call, expired=None):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    stats = call.data.split("|")
-    pdata = stats[1]
-    expired = stats[2]
+    stats = call.data.split("|", 1)
+    if not expired:
+        expired = stats[1]
 
     if int(time()) >= int(expired):
         owner_id = loop.run_until_complete(psql.fetchrow('SELECT owner_id FROM channels WHERE id = $1;',
                                                          int(call.message.chat.id)))['owner_id']
+        community_id = loop.run_until_complete(
+            psql.fetchrow('SELECT community_id FROM posts WHERE chat_id = $1 AND message_id = $2;',
+                          int(call.message.chat.id), int(call.message.message_id)))['community_id']
+        post_id = loop.run_until_complete(
+            psql.fetchrow('SELECT post_id FROM posts WHERE chat_id = $1 AND message_id = $2;',
+                          int(call.message.chat.id), int(call.message.message_id)))['post_id']
         access_token = loop.run_until_complete(psql.fetchrow(
             'SELECT access_token FROM users WHERE id = $1;',
             int(owner_id)
         ))['access_token']
 
-        pdata_splitted = str(pdata).split("&")
         post = requests.post("https://api.vk.com/method/wall.getById",
                              data={
-                                 "posts": str(
-                                     str(pdata_splitted[0]) + "_" +
-                                     str(pdata_splitted[1])
-                                 ),
+                                 "posts": str(str(community_id) + "_" + str(post_id)),
                                  "copy_history_depth": 1,
                                  "extended": 1,
                                  "access_token": access_token,
@@ -46,8 +48,8 @@ def refresh_stats(bot, call):
         if update_status == "OK" or update_status == "IS NOT MODIFIED":
             bot.answer_callback_query(callback_query_id=call.id,
                                       text="✅ Статистика данной публикации была успешно обновлена! "
-                                           "Обратите внимание, что клиенту потребуется до 30 секунд для "
-                                           "отображения новых результатов при нажатии на кнопку.",
+                                           "Нажмите на кнопку(-и) еще раз, чтобы увидеть обновленные значения. "
+                                           "Обратите внимание, что клиенту потребуется до 30 секунд для их обновления.",
                                       show_alert=True, cache_time=30)
         else:
             bot.answer_callback_query(callback_query_id=call.id,
@@ -97,51 +99,47 @@ def callback(bot, call):
             elif call.data == "start_menu_next":
                 pass
             elif call.data.startswith("channel_counters"):
-                counter = call.data.split("|")
-                counter_name = counter[1]
-                counter_amount = counter[2]
-                if counter_name == "time":
+                counter = call.data.split("|", 2)
+
+                if counter[1] == "time":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="🕒 Время публикации данного поста: {0} MSK.".format(
                                                   str(datetime.fromtimestamp(
-                                                      int(counter_amount)).strftime("%d.%m.%y, %H:%M:%S"))),
+                                                      int(counter[2])).strftime("%d.%m.%y, %H:%M:%S"))),
                                               show_alert=True, cache_time=30)
-                elif counter_name == "likes":
+                elif counter[1] == "likes":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="💖 Количество лайков: {0}.".format(
-                                                  str(counter_amount)), show_alert=True, cache_time=30)
-                elif counter_name == "comments":
+                                                  str(counter[2])), show_alert=True, cache_time=30)
+                elif counter[1] == "comments":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="💬 Количество комментариев: {0}.".format(
-                                                  str(counter_amount)), show_alert=True, cache_time=30)
-                elif counter_name == "reposts":
+                                                  str(counter[2])), show_alert=True, cache_time=30)
+                elif counter[1] == "reposts":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="🔁 Количество репостов: {0}.".format(
-                                                  str(counter_amount)), show_alert=True, cache_time=30)
-                elif counter_name == "views":
+                                                  str(counter[2])), show_alert=True, cache_time=30)
+                elif counter[1] == "views":
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="👁 Количество просмотров: {0}.".format(
-                                                  str(counter_amount)), show_alert=True, cache_time=30)
-                elif counter_name == "poll":
-                    try:
-                        poll_name = loop.run_until_complete(redis.execute("GET", str("poll&" + str(counter_amount))))
-                    except AttributeError:
-                        logging.debug("AttributeError Exception has been occurred, most likely this poll "
-                                      "isn't in the cache.", exc_info=True)
-                        refresh_stats(bot, call)
+                                                  str(counter[2])), show_alert=True, cache_time=30)
+                elif counter[1] == "poll":
+                    poll = loop.run_until_complete(redis.execute("GET", str("poll&" + str(counter[2]))))
+                    if not poll:
+                        logging.debug("Poll Name is None, most likely this poll isn't in the cache.")
+                        refresh_stats(bot, call, expired=1)
                         return
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="📋 Название голосования: {0}.".format(
-                                                  str(poll_name[0:170])), show_alert=True, cache_time=30)
-                elif counter_name == "poll_ans":
-                    try:
-                        poll_answer = loop.run_until_complete(redis.execute(
-                            "GET", str("poll_answer&" + str(counter_amount)))).split("&")
-                    except AttributeError:
-                        logging.debug("AttributeError Exception has been occurred, most likely this poll answer "
-                                      "isn't in the cache.", exc_info=True)
-                        refresh_stats(bot, call)
+                                                  str(poll[0:170])), show_alert=True, cache_time=30)
+                elif counter[1] == "poll_ans":
+                    poll_answer = loop.run_until_complete(redis.execute("GET", str("poll_answer&" + str(counter[2]))))
+                    if not poll_answer:
+                        logging.debug("Poll Answer is None, most likely this poll isn't in the cache.")
+                        refresh_stats(bot, call, expired=1)
                         return
+                    else:
+                        poll_answer = poll_answer.split("?|&|&|!", 1)
                     bot.answer_callback_query(callback_query_id=call.id,
                                               text="❎ Количество голосов за {0}: {1} голосов.".format(
                                                   str(poll_answer[0][0:140]), str(poll_answer[1])),

@@ -36,6 +36,12 @@ def polling():
             for num in range(len(communities)):
                 time.sleep(0.5)
 
+                if config.developerMode:
+                    loop.run_until_complete(psql.execute(
+                        'DELETE FROM posts WHERE chat_id = $1;',
+                        int(communities[num]['id'])
+                    ))
+                    logging.debug("Developer Mode enabled, all posts are deleted in the every communities loop.")
                 access_token = loop.run_until_complete(psql.fetchrow(
                     'SELECT access_token FROM users WHERE id = $1;',
                     communities[num]['owner_id']
@@ -197,12 +203,11 @@ def polling():
                             bot.send_media_group(communities[num]['id'], photos,
                                                  reply_to_message_id=message.message_id)
 
-                        if not config.developerMode:
-                            loop.run_until_complete(psql.execute(
-                                'INSERT INTO posts("chat_id", "community_id", "post_id") VALUES($1, $2, $3) '
-                                'RETURNING "chat_id", "community_id", "post_id";',
-                                int(communities[num]['id']), int(posts['owner_id']), int(posts['id'])
-                            ))
+                        loop.run_until_complete(psql.execute(
+                            'INSERT INTO posts("chat_id", "message_id", "community_id", "post_id") '
+                            'VALUES($1, $2, $3, $4) RETURNING "chat_id", "community_id", "post_id";',
+                            int(communities[num]['id']), int(message.message_id), int(posts['owner_id']),
+                            int(posts['id'])))
                         time.sleep(1)
                     except Exception as e:
                         logging.error("Exception has been occurred while trying to send message to the channel.",

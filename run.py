@@ -15,15 +15,12 @@ import time
 
 if __name__ == "__main__":
     try:
+        ignoredModulesLoggers = []
+        # noinspection PyUnresolvedReferences
+        for logger in logging.Logger.manager.loggerDict:
+            ignoredModulesLoggers.extend([logger])
+            logging.getLogger(logger).setLevel(logging.WARNING)
         if config.developerMode:
-            ignoredModulesLoggers = []
-            # noinspection PyUnresolvedReferences
-            for logger in logging.Logger.manager.loggerDict:
-                if str(logger).startswith("telegram"):
-                    pass
-                else:
-                    ignoredModulesLoggers.extend([logger])
-                    logging.getLogger(logger).setLevel(logging.WARNING)
             logging.debug("Ignoring these Modules' Loggers: " + str(ignoredModulesLoggers) + '.')
 
         asyncio.get_event_loop().run_until_complete(psql.create_tables())

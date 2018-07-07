@@ -107,8 +107,8 @@ class Psql:
 
             try:
                 await Psql.execute(
-                    'CREATE TABLE IF NOT EXISTS "public"."posts" ("chat_id" bigint, "community_id" int NOT NULL, '
-                    '"post_id" int NOT NULL, PRIMARY KEY ("chat_id"));'
+                    'CREATE TABLE IF NOT EXISTS "public"."posts" ("chat_id" bigint NOT NULL, "message_id" int '
+                    'NOT NULL, "community_id" int NOT NULL, "post_id" int NOT NULL);'
                 )
             except Exception as e:
                 logging.critical("Couldn't create table posts.", exc_info=True)
