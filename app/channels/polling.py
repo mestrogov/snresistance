@@ -102,35 +102,47 @@ def polling():
                                     sorted_sizes = sorted(posts['attachments'][anum]['photo']['sizes'],
                                                           key=itemgetter('width'))
                                     photos.extend([InputMediaPhoto(sorted_sizes[-1]['url'])])
-                                elif posts['attachments'][anum]['type'] == "video":
-                                    time.sleep(0.5)
-                                    video = requests.post("https://api.vk.com/method/video.get",
-                                                          data={
-                                                              "videos": str(
-                                                                  str(posts['attachments'][anum]['video']
-                                                                      ['owner_id']) + "_" +
-                                                                  str(posts['attachments'][anum]['video']['id'])
-                                                              ),
-                                                              "extended": 1,
-                                                              "access_token": access_token,
-                                                              "v": "5.80"
-                                                          }).json()['response']
-                                    video = video['items'][0]
-                                    try:
-                                        video_platform = str(video['platform'])
-                                    except:
-                                        video_platform = "VK"
+                                elif posts['attachments'][anum]['type'] == "video" or \
+                                        ("youtube.com/watch?v=" in posts['attachments'][anum]['link']['url'] if
+                                            posts['attachments'][anum]['type'] == "link" else None):
+                                    if posts['attachments'][anum]['type'] == "video":
+                                        time.sleep(1)
+                                        video = requests.post("https://api.vk.com/method/video.get",
+                                                              data={
+                                                                  "videos": str(
+                                                                      str(posts['attachments'][anum]['video']
+                                                                          ['owner_id']) + "_" +
+                                                                      str(posts['attachments'][anum]['video']['id'])
+                                                                  ),
+                                                                  "extended": 1,
+                                                                  "access_token": access_token,
+                                                                  "v": "5.80"
+                                                              }).json()['response']
+                                        video = video['items'][0]
+                                        try:
+                                            video_platform = str(video['platform'])
+                                        except:
+                                            video_platform = "VK"
 
-                                    if video_platform == "YouTube":
-                                        video_url = "https://www.youtube.com/watch?v={0}".format(
-                                            str(video['player']).split("/embed/", 1)[1].split("?__ref=", 1)[0].strip()
-                                        )
-                                    else:
-                                        video_url = str(video['player']).split("&__ref=", 1)[0].strip()
+                                        logging.critical("Video Platform: " + str(video_platform))
+                                        if video_platform == "YouTube":
+                                            video_url = "https://www.youtube.com/watch?v={0}".format(
+                                                str(video['player']).split("/embed/", 1)[1].split("?__ref=", 1)[0].
+                                                strip())
+                                            video_url = video_url.replace("&feature=share", "", 1).strip()
+                                        else:
+                                            video_url = str(video['player']).split("&__ref=", 1)[0].strip()
 
-                                    videos.extend([{"url": video_url, "platform": str(video_platform),
-                                                    "title": str(video['title']), "duration": str(video['duration'])}])
-                                    time.sleep(1)
+                                        videos.extend([{"url": video_url, "platform": str(video_platform),
+                                                        "title": str(video['title'])}])
+                                    if posts['attachments'][anum]['type'] == "link" and \
+                                            "youtube.com/watch?v=" in posts['attachments'][anum]['link']['url']:
+                                        video_platform = "YouTube"
+                                        video_url = posts['attachments'][anum]['link']['url'].\
+                                            replace("&feature=share", "", 1).strip()
+
+                                        videos.extend([{"url": video_url, "platform": str(video_platform),
+                                                        "title": str(posts['attachments'][anum]['link']['title'])}])
                                 elif posts['attachments'][anum]['type'] == "audio":
                                     audios.extend([{"artist": str(posts['attachments'][anum]['audio']['artist']),
                                                     "title": str(posts['attachments'][anum]['audio']['title'])}])
