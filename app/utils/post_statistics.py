@@ -9,7 +9,6 @@ from datetime import datetime
 from uuid import uuid4
 from ast import literal_eval
 from time import time
-from math import ceil
 import logging
 import asyncio
 
@@ -58,19 +57,19 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
         ])
         markup.extend([[
             InlineKeyboardButton("💖 {0}".format(
-                (str(ceil(int(posts['likes']['count']) / 1000.0) * 1) + "K" if int(posts['likes']['count']) > 1000
+                (str(round(int(posts['likes']['count']) / 1000.0) * 1) + "K" if int(posts['likes']['count']) > 1000
                  else str(posts['likes']['count']))),
                 callback_data="channel_counters|likes|{0}".format(str(posts['likes']['count']))),
             InlineKeyboardButton("💬 {0}".format(
-                (str(ceil(int(posts['comments']['count']) / 1000.0) * 1) + "K" if int(posts['comments']['count']) > 1000
-                 else str(posts['comments']['count']))),
+                (str(round(int(posts['comments']['count']) / 1000.0) * 1) + "K"
+                 if int(posts['comments']['count']) > 1000 else str(posts['comments']['count']))),
                 callback_data="channel_counters|comments|{0}".format(str(posts['comments']['count']))),
             InlineKeyboardButton("🔁 {0}".format(
-                (str(ceil(int(posts['reposts']['count']) / 1000.0) * 1) + "K" if int(posts['reposts']['count']) > 1000
+                (str(round(int(posts['reposts']['count']) / 1000.0) * 1) + "K" if int(posts['reposts']['count']) > 1000
                  else str(posts['reposts']['count']))),
                 callback_data="channel_counters|reposts|{0}".format(str(posts['reposts']['count']))),
             InlineKeyboardButton("👁️ {0}".format(
-                (str(ceil(int(posts['views']['count']) / 1000.0) * 1) + "K" if int(posts['views']['count']) > 1000
+                (str(round(int(posts['views']['count']) / 1000.0) * 1) + "K" if int(posts['views']['count']) > 1000
                  else str(posts['views']['count']))),
                 callback_data="channel_counters|views|{0}".format(str(posts['views']['count']))),
         ]])
@@ -102,7 +101,7 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
                 markup.extend([[
                     InlineKeyboardButton("❎ {0} — {1} 👍🏻".format(
                         str(poll_question),
-                        (str(ceil(int(poll[0]['answers'][pint]['votes']) / 1000.0) * 1) + "K" if int(
+                        (str(round(int(poll[0]['answers'][pint]['votes']) / 1000.0) * 1) + "K" if int(
                             poll[0]['answers'][pint]['votes']) > 1000
                          else str(poll[0]['answers'][pint]['votes']))),
                         callback_data="channel_counters|poll_ans|{0}".format(

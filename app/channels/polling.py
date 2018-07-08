@@ -124,7 +124,6 @@ def polling():
                                         except:
                                             video_platform = "VK"
 
-                                        logging.critical("Video Platform: " + str(video_platform))
                                         if video_platform == "YouTube":
                                             video_url = "https://www.youtube.com/watch?v={0}".format(
                                                 str(video['player']).split("/embed/", 1)[1].split("?__ref=", 1)[0].
