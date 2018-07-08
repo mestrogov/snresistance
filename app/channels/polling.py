@@ -80,6 +80,7 @@ def polling():
                         pass
 
                     attachments = None
+                    video_preview = None
                     photos = None
                     videos = None
                     audios = None
@@ -125,10 +126,7 @@ def polling():
                                             str(video['player']).split("/embed/", 1)[1].split("?__ref=", 1)[0].strip()
                                         )
                                     else:
-                                        # TODO: Make VK Video URL available to mobile OSes
-                                        video_url = "https://vk.com/video{0}_{1}".format(
-                                            str(video['owner_id']), str(video['id'])
-                                        )
+                                        video_url = str(video['player']).split("&__ref=", 1)[0].strip()
 
                                     videos.extend([{"url": video_url, "platform": str(video_platform),
                                                     "title": str(video['title']), "duration": str(video['duration'])}])
@@ -167,10 +165,12 @@ def polling():
                                     str(int(aint)), str(videos[vint]['title']), str(videos[vint]['url']),
                                     str(videos[vint]['platform'])
                                 )
+                                if videos[vint]['platform'] == "YouTube" and not video_preview:
+                                    formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
+                                        videos[vint]['url']
+                                    ), 1)
+                                    video_preview = True
                                 aint += 1
-                            formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
-                                videos[0]['url']
-                            ), 1)
                         if audios:
                             for auint in range(len(audios)):
                                 formatted_text = formatted_text + \
@@ -186,13 +186,13 @@ def polling():
                                                      str(int(aint)), str(links[lint]['title']),
                                                      str(links[lint]['url']))
                                 aint += 1
-                            if not videos:
+                            if not video_preview:
                                 formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
                                     links[0]['url']
                                 ), 1)
 
                     try:
-                        if videos or links:
+                        if video_preview or links:
                             message = bot.send_message(communities[num]['id'], formatted_text, reply_markup=markup,
                                                        parse_mode="Markdown")
                         else:
