@@ -59,10 +59,10 @@ def polling():
                                       }).json()
 
                 posts_original = posts['response']
-                posts_allitems = posts['response']['items']
+                posts_items = posts['response']['items']
 
-                for pnum in range(len(posts_allitems)):
-                    posts = posts_allitems[pnum]
+                for pnum in range(len(posts_items)):
+                    posts = posts_items[pnum]
                     is_posted = loop.run_until_complete(psql.fetchrow(
                         'SELECT post_id FROM posts WHERE chat_id = $1 AND community_id = $2 AND post_id = $3;',
                         int(communities[num]['id']), int(posts['owner_id']), int(posts['id'])
@@ -189,9 +189,6 @@ def polling():
                         logging.error("Exception has been occurred while trying to execute attachments check.",
                                       exc_info=True)
 
-                    # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
-                    markup = postStatistics(bot, posts=posts, chat_id=communities[num]['id'], mtype="initiate")
-
                     post_profile = None
                     repost_profile = None
                     posts_original['profiles'].extend(posts_original['groups'])
@@ -277,6 +274,7 @@ def polling():
                                 aint += 1
 
                     try:
+                        markup = postStatistics(bot, posts=posts, chat_id=communities[num]['id'], mtype="initiate")
                         if video_preview or links:
                             message = bot.send_message(communities[num]['id'], formatted_text, reply_markup=markup,
                                                        parse_mode="Markdown")
