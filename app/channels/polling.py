@@ -3,6 +3,7 @@
 from app import logging
 from app import config as config
 from app.utils.markup_fixes import markup_multipurpose_fixes as markup_fixes
+from app.utils.list_splitting import split_list as split_list
 from app.remote.postgresql import Psql as psql
 from app.utils.post_statistics import statistics as postStatistics
 from telegram import InputMediaPhoto
@@ -50,7 +51,7 @@ def polling():
                 posts = requests.post("https://api.vk.com/method/wall.get",
                                       data={
                                           "owner_id": str("-" + str(communities[num]['community_id'])),
-                                          "count": 5,
+                                          "count": 3,
                                           "filter": "all",
                                           "extended": 1,
                                           "access_token": access_token,
@@ -80,12 +81,40 @@ def polling():
                         pass
 
                     attachments = None
+                    is_repost = None
                     video_preview = None
+                    posts['text_reposted'] = None
                     photos = None
                     videos = None
                     audios = None
                     links = None
                     other = None
+
+                    try:
+                        # noinspection PyStatementEffect
+                        posts['copy_history']
+                        is_repost = True
+
+                        try:
+                            posts['copy_history'][0]['attachments']
+                        except KeyError:
+                            pass
+
+                        try:
+                            posts['attachments']
+                        except KeyError:
+                            posts['attachments'] = []
+
+                        try:
+                            posts_original['profiles']
+                        except KeyError:
+                            posts_original['profiles'] = []
+
+                        posts['attachments'].extend(posts['copy_history'][0]['attachments'])
+                        posts['text_reposted'] = posts['copy_history'][0]['text']
+                    except KeyError:
+                        logging.debug("KeyError Exception has been occurred, most likely the post isn't a repost.",
+                                      exc_info=True)
 
                     try:
                         try:
@@ -163,13 +192,45 @@ def polling():
                     # SELECT id FROM TAG_TABLE WHERE 'aaaaaaaa' LIKE '%' || tag_name || '%';
                     markup = postStatistics(bot, posts=posts, chat_id=communities[num]['id'], mtype="initiate")
 
+                    post_profile = None
+                    repost_profile = None
+                    posts_original['profiles'].extend(posts_original['groups'])
+
+                    for i in range(len(posts_original['profiles'])):
+                        if str(posts_original['profiles'][i]['id']) == str(posts['owner_id']).replace("-", "", 1):
+                            post_profile = posts_original['profiles'][i]
+                        if is_repost:
+                            if str(posts_original['profiles'][i]['id']) == str(posts['copy_history'][0]['owner_id']).\
+                                    replace("-", "", 1):
+                                repost_profile = posts_original['profiles'][i]
+                    try:
+                        if is_repost:
+                            # noinspection PyStatementEffect
+                            repost_profile['name']
+                    except KeyError:
+                        repost_profile['name'] = str(repost_profile['first_name']) + " " + \
+                                                 str(repost_profile['last_name'])
+
+                    if posts['text']:
+                        post_text = "\n\n" + str(markup_fixes(posts['text']))
+                    else:
+                        post_text = ""
+                    if is_repost:
+                        post_text = str(post_text) + \
+                                    "\n\n[🔁 Репост публикации со страницы {0}.](https://vk.com/{1}?w=wall-{2}_{3})\n".\
+                                    format(
+                                        str(repost_profile['name']),
+                                        str(repost_profile['screen_name']),
+                                        str(repost_profile['id']),
+                                        str(posts['copy_history'][0]['id']),
+                                    ) + str(markup_fixes(posts['text_reposted']))
+
                     template_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
-                                    "\n\n{3}".format(
-                                         str(posts_original['groups'][0]['screen_name']),
-                                         str(posts_original['groups'][0]['id']),
+                                    "{3}".format(
+                                         str(post_profile['screen_name']),
+                                         str(post_profile['id']),
                                          str(posts['id']),
-                                         str(markup_fixes(posts['text']))
-                                     )
+                                         str(post_text))
                     formatted_text = template_text
                     if attachments:
                         if videos or audios or links or other:
@@ -224,8 +285,10 @@ def polling():
                                                        disable_web_page_preview=True, reply_markup=markup,
                                                        parse_mode="Markdown")
                         if photos:
-                            bot.send_media_group(communities[num]['id'], photos,
-                                                 reply_to_message_id=message.message_id)
+                            photos = split_list(photos, 10)
+                            for lphotos in range(len(photos)):
+                                bot.send_media_group(communities[num]['id'], photos[lphotos],
+                                                     reply_to_message_id=message.message_id)
 
                         loop.run_until_complete(psql.execute(
                             'INSERT INTO posts("chat_id", "message_id", "community_id", "post_id") '
