@@ -85,6 +85,7 @@ def polling():
                     videos = None
                     audios = None
                     links = None
+                    other = None
 
                     try:
                         try:
@@ -96,6 +97,7 @@ def polling():
                             videos = []
                             audios = []
                             links = []
+                            other = []
 
                             for anum in range(len(posts['attachments'])):
                                 if posts['attachments'][anum]['type'] == "photo":
@@ -148,6 +150,9 @@ def polling():
                                 elif posts['attachments'][anum]['type'] == "link":
                                     links.extend([{"title": str(posts['attachments'][anum]['link']['title']),
                                                    "url": str(posts['attachments'][anum]['link']['url'])}])
+                                else:
+                                    if str(posts['attachments'][anum]['type']) != "poll":
+                                        other.extend([{"type": str(posts['attachments'][anum]['type'])}])
                         except KeyError:
                             logging.debug("KeyError Exception has been occurred, most likely the post doesn't have "
                                           "any attachments.", exc_info=True)
@@ -167,7 +172,7 @@ def polling():
                                      )
                     formatted_text = template_text
                     if attachments:
-                        if videos or audios or links:
+                        if videos or audios or links or other:
                             formatted_text = formatted_text + str("\n\n*Прикрепленные вложения к публикации:*")
                         aint = 1
                         if videos:
@@ -201,6 +206,14 @@ def polling():
                                 formatted_text = formatted_text.replace("[О", "[О]({0})[".format(
                                     links[0]['url']
                                 ), 1)
+                        if other:
+                            for oint in range(len(other)):
+                                formatted_text = formatted_text + \
+                                                 "\n{0}. К данной публикации прикреплено вложение с типом {1}. " \
+                                                 "Данный тип не может быть отображен внутри Telegram. Для его " \
+                                                 "просмотра перейдите на данную публикацию во ВКонтакте.".format(
+                                                     str(int(aint)), str(other[oint]['type']))
+                                aint += 1
 
                     try:
                         if video_preview or links:
