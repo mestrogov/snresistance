@@ -18,8 +18,8 @@ try:
         formatter = logging.Formatter('%(threadName)s/%(filename)s:%(lineno)d/%(funcName)s() | %(asctime)s | '
                                       '%(levelname)s  >  %(message)s', '%d.%m.%y, %H:%M:%S')
     else:
-        formatter = logging.Formatter('%(asctime)s | %(levelname)s  >  %(message)s',
-                                      '%d.%m.%y, %H:%M:%S')
+        formatter = logging.Formatter('%(filename)s:%(lineno)d/%(funcName)s() | %(asctime)s | '
+                                      '%(levelname)s  >  %(message)s', '%d.%m.%y, %H:%M:%S')
 
     """
     fileHandler = logging.FileHandler("latest.log")

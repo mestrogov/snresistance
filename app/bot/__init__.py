@@ -3,6 +3,7 @@
 
 from app import logging
 from app import config as config
+from app.channels.polling import polling as channelPolling
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, InlineQueryHandler
 from telegram import Bot
 from app.commands.start import start as start_command
@@ -21,6 +22,7 @@ def bot_initialize():
         # noinspection PyShadowingNames
         botUpdater = Updater(config.botToken, workers=16)
         dp = botUpdater.dispatcher
+        jq = botUpdater.job_queue
 
         dp.add_handler(CommandHandler("start", start_command))
         dp.add_handler(CommandHandler("debug", debug_command))
@@ -32,7 +34,9 @@ def bot_initialize():
         dp.add_handler(InlineQueryHandler(inline_query))
         dp.add_error_handler(error_handler)
 
-        botUpdater.start_polling(clean=True)
+        jq.run_repeating(channelPolling, interval=900, first=5)
+
+        botUpdater.start_polling(clean=True, timeout=15, read_latency=20)
 
         return botUpdater
     except Exception as e:

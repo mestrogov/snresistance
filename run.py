@@ -6,7 +6,6 @@ from app.bot import bot_initialize as botInitialize
 from app.bot import bot_configuration as botConfiguration
 from app.remote.postgresql import Psql as psql
 from app.remote.redis import Redis as redis
-from app.channels.polling import polling as channelPolling
 from telegram.ext import Updater
 import logging
 import asyncio
@@ -29,8 +28,6 @@ if __name__ == "__main__":
 
         logging.debug("Bot Configuration: " + str(botConfiguration()))
         botUpdater = botInitialize()
-
-        channelPolling()
 
         try:
             while True:

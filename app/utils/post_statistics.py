@@ -108,13 +108,13 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
                             str(pollanswer_uuid)))]])
                 loop.run_until_complete(redis.execute("SET", str("poll_answer&" + str(pollanswer_uuid)), str(
                     str(poll[0]['answers'][pint]['text']) + "?|&|&|!" + str(poll[0]['answers'][pint]['votes']))))
-                loop.run_until_complete(redis.execute("EXPIRE", str("poll_answer&" + str(pollanswer_uuid)), 900))
+                loop.run_until_complete(redis.execute("EXPIRE", str("poll_answer&" + str(pollanswer_uuid)), 1800))
                 logging.debug("Poll Answer UUID: " + str(pollanswer_uuid))
 
         markup.extend([
             [InlineKeyboardButton("🔄 Обновить статистику",
                                   callback_data="channel_refresh_stats|{0}".format(
-                                      str(int(int(time())) + 300)))]])
+                                      str(int(int(time())) + 600)))]])
 
         markup = InlineKeyboardMarkup(markup)
 
