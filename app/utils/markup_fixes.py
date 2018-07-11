@@ -52,6 +52,11 @@ def escape_markdown(source_text):
     return sub(r'([%s])' % escape_chars, r'\\\1', source_text)
 
 
+def escape_markdown_links(source_text):
+    response_text = source_text.replace("[", "(").replace("]", ")")
+    return response_text.strip()
+
+
 def hts_splitting(source_text):
     splitted_text = {tag.strip("@") for tag in source_text.split() if tag.startswith("#")}
     listed_text = list(splitted_text)

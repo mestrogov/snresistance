@@ -1,6 +1,6 @@
 # Packages
 aioredis>=1.1.0
-asyncpg>=0.16.0
+asyncpg>=0.17.0
 python-telegram-bot>=10.1.0
 requests>=2.19.1
 

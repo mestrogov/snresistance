@@ -3,6 +3,7 @@
 from app import logging
 from app import config as config
 from app.utils.markup_fixes import markup_multipurpose_fixes as markup_fixes
+from app.utils.markup_fixes import escape_markdown_links as escape_md_links
 from app.utils.list_splitting import split_list as split_list
 from app.remote.postgresql import Psql as psql
 from app.utils.post_statistics import statistics as postStatistics
@@ -207,7 +208,7 @@ def polling(bot, job):
                     post_text = str(post_text) + \
                                 "\n\n[🔁 Репост публикации со страницы {0}.](https://vk.com/{1}?w=wall-{2}_{3})\n".\
                                 format(
-                                    str(repost_profile['name']),
+                                    str(escape_md_links(repost_profile['name'])),
                                     str(repost_profile['screen_name']),
                                     str(repost_profile['id']),
                                     str(posts['copy_history'][0]['id']),
@@ -227,7 +228,7 @@ def polling(bot, job):
                     if videos:
                         for vint in range(len(videos)):
                             formatted_text = formatted_text + "\n{0}. Видеозапись — [{1}]({2}) — {3}".format(
-                                str(int(aint)), str(videos[vint]['title']), str(videos[vint]['url']),
+                                str(int(aint)), str(escape_md_links(videos[vint]['title'])), str(videos[vint]['url']),
                                 str(videos[vint]['platform'])
                             )
                             if videos[vint]['platform'] == "YouTube" and not video_preview:
@@ -241,14 +242,15 @@ def polling(bot, job):
                             formatted_text = formatted_text + \
                                              "\n{0}. Аудиозапись — [{1} — {2}](https://soundcloud.com/" \
                                              "search?q={1}-{2}) — SoundCloud".format(
-                                                 str(int(aint)), str(audios[auint]['artist']),
-                                                 str(audios[auint]['title']))
+                                                 str(int(aint)), str(escape_md_links(audios[auint]['artist'])),
+                                                 str(escape_md_links(audios[auint]['title'])).replace("(", "").
+                                                 replace(")", ""))
                             aint += 1
                     if links:
                         for lint in range(len(links)):
                             formatted_text = formatted_text + \
                                              "\n{0}. Ссылка на сторонний сайт — [{1}]({2})".format(
-                                                 str(int(aint)), str(links[lint]['title']),
+                                                 str(int(aint)), str(escape_md_links(links[lint]['title'])),
                                                  str(links[lint]['url']))
                             aint += 1
                         if not video_preview:
