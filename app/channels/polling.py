@@ -260,7 +260,7 @@ def polling(bot, job):
                     if other:
                         for oint in range(len(other)):
                             formatted_text = formatted_text + \
-                                             "\n{0}. К данной публикации прикреплено вложение с типом {1}. " \
+                                             "\n{0}. К данной публикации прикреплено вложение с типом *{1}*. " \
                                              "Данный тип не может быть отображен внутри Telegram. Для его " \
                                              "просмотра перейдите на данную публикацию во ВКонтакте.".format(
                                                  str(int(aint)), str(other[oint]['type']))
@@ -280,6 +280,11 @@ def polling(bot, job):
                         for lphotos in range(len(photos)):
                             bot.send_media_group(communities[num]['id'], photos[lphotos],
                                                  reply_to_message_id=message.message_id, timeout=60)
+                    try:
+                        if str(posts["is_pinned"]) == "1":
+                            bot.pin_chat_message(communities[num]['id'], message.message_id)
+                    except KeyError:
+                        pass
 
                     loop.run_until_complete(psql.execute(
                         'INSERT INTO posts("chat_id", "message_id", "community_id", "post_id") '
