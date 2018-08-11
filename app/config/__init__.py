@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
-botToken = "575841584:AAFtrQNHO9JHUZJGobWh6-tI0sCxSSY20m4"
+botToken = "575841584:AAF4oo2IQdyGHVo1Ead1Ksrue-Pyfp8xv88"
 developerMode = True
 
 # Database Credentials
-databaseHost = "127.0.0.1"
+databaseHost = "172.17.0.3"
 databasePort = 5432
 databaseName = "SNResistance"
 databaseUsername = "postgres"
-databasePassword = ""
+databasePassword = "postgresPassword"
 
 # Redis Credentials
-redisHost = "127.0.0.1"
+redisHost = "172.17.0.4"
 redisPort = 6379
 redisPassword = ""
 

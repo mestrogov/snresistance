@@ -39,7 +39,7 @@ def polling(bot, job):
             posts = requests.post("https://api.vk.com/method/wall.get",
                                   data={
                                       "owner_id": str("-" + str(communities[num]['community_id'])),
-                                      "count": 5,
+                                      "count": 8,
                                       "filter": "all",
                                       "extended": 1,
                                       "access_token": access_token,
@@ -267,6 +267,11 @@ def polling(bot, job):
                             aint += 1
 
                 try:
+                    if photos:
+                        photos = split_list(photos, 10)
+                        for lphotos in range(len(photos)):
+                            bot.send_media_group(communities[num]['id'], photos[lphotos], timeout=60)
+
                     markup = postStatistics(bot, posts=posts, chat_id=communities[num]['id'], mtype="initiate")
                     if video_preview or links:
                         message = bot.send_message(communities[num]['id'], formatted_text, reply_markup=markup,
@@ -275,11 +280,6 @@ def polling(bot, job):
                         message = bot.send_message(communities[num]['id'], formatted_text,
                                                    disable_web_page_preview=True, reply_markup=markup,
                                                    parse_mode="Markdown", timeout=30)
-                    if photos:
-                        photos = split_list(photos, 10)
-                        for lphotos in range(len(photos)):
-                            bot.send_media_group(communities[num]['id'], photos[lphotos],
-                                                 reply_to_message_id=message.message_id, timeout=60)
                     try:
                         if str(posts["is_pinned"]) == "1":
                             bot.pin_chat_message(communities[num]['id'], message.message_id)
