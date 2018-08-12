@@ -39,7 +39,7 @@ def polling(bot, job):
             posts = requests.post("https://api.vk.com/method/wall.get",
                                   data={
                                       "owner_id": str("-" + str(communities[num]['community_id'])),
-                                      "count": 8,
+                                      "count": 10,
                                       "filter": "all",
                                       "extended": 1,
                                       "access_token": access_token,
@@ -205,22 +205,18 @@ def polling(bot, job):
                 else:
                     post_text = ""
                 if is_repost:
-                    post_text = str(post_text) + \
-                                "\n\n[🔁 Репост публикации со страницы {0}.](https://vk.com/{1}?w=wall-{2}_{3})\n".\
-                                format(
-                                    str(escape_md_links(repost_profile['name'])),
-                                    str(repost_profile['screen_name']),
-                                    str(repost_profile['id']),
-                                    str(posts['copy_history'][0]['id']),
-                                ) + str(markup_fixes(posts['text_reposted']))
+                    post_text = str(post_text) + "\n\n[🔁 Репост со страницы {0}.](https://vk.com/wall-{1}_{2})\n".\
+                        format(
+                            str(escape_md_links(repost_profile['name'])),
+                            str(repost_profile['id']),
+                            str(posts['copy_history'][0]['id'])) + \
+                        str(markup_fixes(posts['text_reposted']))
 
-                template_text = "[Оригинальная публикация во ВКонтакте.](https://vk.com/{0}?w=wall-{1}_{2})" \
-                                "{3}".format(
-                                     str(post_profile['screen_name']),
+                formatted_text = "[Оригинальная публикация.](https://vk.com/wall-{0}_{1})" \
+                                 "{2}".format(
                                      str(post_profile['id']),
                                      str(posts['id']),
                                      str(post_text))
-                formatted_text = template_text
                 if attachments:
                     if videos or audios or links or other:
                         formatted_text = formatted_text + str("\n\n*Прикрепленные вложения к публикации:*")
@@ -240,8 +236,7 @@ def polling(bot, job):
                     if audios:
                         for auint in range(len(audios)):
                             formatted_text = formatted_text + \
-                                             "\n{0}. Аудиозапись — [{1} — {2}](https://soundcloud.com/" \
-                                             "search?q={1}-{2}) — SoundCloud".format(
+                                             "\n{0}. Аудиозапись — {1} — {2}".format(
                                                  str(int(aint)), str(escape_md_links(audios[auint]['artist'])),
                                                  str(escape_md_links(audios[auint]['title'])).replace("(", "").
                                                  replace(")", ""))
