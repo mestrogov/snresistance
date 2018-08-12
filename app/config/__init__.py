@@ -1,19 +1,28 @@
 # -*- coding: utf-8 -*-
 
-botToken = "575841584:AAF4oo2IQdyGHVo1Ead1Ksrue-Pyfp8xv88"
-developerMode = True
+from os import getenv
+from sys import exit
+import logging
 
-# Database Credentials
-databaseHost = "172.17.0.3"
-databasePort = 5432
-databaseName = "SNResistance"
-databaseUsername = "postgres"
-databasePassword = "postgresPassword"
+# dae167abbd450adabe7fe1c1c79c13f6a05c6b92f033b040881a0bcc2989c438ae4a7b3aa531b1b6420e2 ; 168313418
+try:
+    botToken = getenv("SNRESISTANCE_TOKEN")
+    developerMode = getenv("SNRESISTANCE_DEVMODE")
 
-# Redis Credentials
-redisHost = "172.17.0.4"
-redisPort = 6379
-redisPassword = ""
+    # Database Credentials
+    databaseHost = getenv("POSTGRES_HOST")
+    databasePort = getenv("POSTGRES_PORT")
+    databaseName = getenv("POSTGRES_DB")
+    databaseUsername = getenv("POSTGRES_USERNAME")
+    databasePassword = getenv("POSTGRES_PASSWORD")
+
+    # Redis Credentials
+    redisHost = getenv("REDIS_HOST")
+    redisPort = getenv("REDIS_PORT")
+    redisPassword = getenv("REDIS_PASSWORD")
+except (KeyError, IndexError):
+    logging.critical("Some environment variables aren't set, execute .environment file before running SNResistance.")
+    exit(1)
 
 startMessage = \
     "*Cоциальные сети* — абсолютное зло из 2004 года, с тех пор они не видоизменились и не поменяли своей сути." \
