@@ -197,19 +197,16 @@ def polling(bot, job):
                         # noinspection PyStatementEffect
                         repost_profile['name']
                 except KeyError:
-                    repost_profile['name'] = str(repost_profile['first_name']) + " " + \
-                                             str(repost_profile['last_name'])
+                    repost_profile['name'] = str(repost_profile['first_name']) + " " + str(repost_profile['last_name'])
 
                 if posts['text']:
                     post_text = "\n\n" + str(markup_fixes(posts['text']))
                 else:
                     post_text = ""
                 if is_repost:
-                    post_text = str(post_text) + "\n\n[🔁 Репост со страницы {0}.](https://vk.com/wall-{1}_{2})\n".\
+                    post_text = str(post_text) + "\n\n🔁 Репост со страницы {0}.\n".\
                         format(
-                            str(escape_md_links(repost_profile['name'])),
-                            str(repost_profile['id']),
-                            str(posts['copy_history'][0]['id'])) + \
+                            str(escape_md_links(repost_profile['name']))) + \
                         str(markup_fixes(posts['text_reposted']))
 
                 formatted_text = "[Оригинальная публикация.](https://vk.com/wall-{0}_{1})" \

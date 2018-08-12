@@ -52,7 +52,7 @@ def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
 
         markup.extend([
             [InlineKeyboardButton("🕒 {0}".format(
-                str(datetime.fromtimestamp(int(posts['date'])).strftime("%H:%M"))),
+                str(datetime.fromtimestamp(int(posts['date'])).strftime("%d.%m.%y, %H:%M:%S"))),
                 callback_data="channel_counters|time|{0}".format(str(posts['date'])))]
         ])
         markup.extend([[
