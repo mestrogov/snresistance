@@ -11,4 +11,4 @@ ENV PYTHONPATH "$PYTHONPATH:$(pwd)"
 RUN apk add --update build-base
 RUN pip install -r requirements/requirements.txt
 
-ENTRYPOINT python run.py
+ENTRYPOINT source .configuration && python run.py

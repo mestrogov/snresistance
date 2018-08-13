@@ -30,7 +30,6 @@ class Psql:
             psql_connection = await asyncpg.connect(host=config.databaseHost,
                                                     database=config.databaseName,
                                                     user=config.databaseUsername,
-                                                    password=config.databasePassword,
                                                     port=config.databasePort)
 
             await psql_connection.execute(*args)
@@ -48,7 +47,6 @@ class Psql:
             psql_connection = await asyncpg.connect(host=config.databaseHost,
                                                     database=config.databaseName,
                                                     user=config.databaseUsername,
-                                                    password=config.databasePassword,
                                                     port=config.databasePort)
 
             result = await psql_connection.fetch(*args)
@@ -67,7 +65,6 @@ class Psql:
             psql_connection = await asyncpg.connect(host=config.databaseHost,
                                                     database=config.databaseName,
                                                     user=config.databaseUsername,
-                                                    password=config.databasePassword,
                                                     port=config.databasePort)
 
             result = await psql_connection.fetchrow(*args)

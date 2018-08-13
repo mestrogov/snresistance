@@ -1,6 +1,4 @@
 #!/bin/bash
 
-docker rm -f `docker ps -aq -f name=SNResistance*`
-
-source .environment; rm -rf docker-compose.yml; envsubst < ".compose.yml" > "docker-compose.yml"
-docker-compose up -d
+source .configuration; rm -rf docker-compose.yml; envsubst < ".compose.yml" > "docker-compose.yml"
+sudo docker rm -f $(sudo docker ps -q -f name=SNResistance); docker-compose up -d

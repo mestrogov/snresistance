@@ -2,16 +2,12 @@
 
 # SNResistance Settings
 export SNRESISTANCE_TOKEN="575841584:AAF4oo2IQdyGHVo1Ead1Ksrue-Pyfp8xv88"
-export SNRESISTANCE_DEVMODE=True
+export SNRESISTANCE_DEVMODE=False
 
 # PostgreSQL Settings
-export POSTGRES_HOST="127.0.0.1"
 export POSTGRES_PORT=5432
 export POSTGRES_DB="SNResistance"
 export POSTGRES_USERNAME="SNResistance"
-export POSTGRES_PASSWORD=`python3 -c "from secrets import token_hex; print(token_hex(64))"`
 
 # Redis Settings
-export REDIS_HOST="127.0.0.1"
 export REDIS_PORT=6379
-export REDIS_PASSWORD=`python3 -c "from secrets import token_hex; print(token_hex(64))"`

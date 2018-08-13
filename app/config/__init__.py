@@ -14,12 +14,10 @@ try:
     databasePort = getenv("POSTGRES_PORT")
     databaseName = getenv("POSTGRES_DB")
     databaseUsername = getenv("POSTGRES_USERNAME")
-    databasePassword = getenv("POSTGRES_PASSWORD")
 
     # Redis Credentials
     redisHost = getenv("REDIS_HOST")
     redisPort = getenv("REDIS_PORT")
-    redisPassword = getenv("REDIS_PASSWORD")
 except (KeyError, IndexError):
     logging.critical("Some environment variables aren't set, execute .environment file before running SNResistance.")
     exit(1)
