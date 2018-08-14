@@ -10,7 +10,6 @@ class Psql:
     @staticmethod
     async def connection():
         try:
-
             response = await Psql.fetchrow("SELECT pong FROM ping WHERE pong = TRUE;")
 
             logging.info("The connection to the PostgreSQL can be established successfully.")

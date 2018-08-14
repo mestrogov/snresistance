@@ -19,6 +19,7 @@ services:
     environment:
       - POSTGRES_DB=$POSTGRES_DB
       - POSTGRES_USER=$POSTGRES_USERNAME
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
     ports:
       - "$POSTGRES_PORT:5432"
     volumes:
@@ -28,6 +29,8 @@ services:
     image: redis:4.0.11-alpine
     container_name: SNResistanceRedis
     restart: always
+    environment:
+      - REDIS_PASSWORD=$REDIS_PASSWORD
     ports:
       - "$REDIS_PORT:6379"
 

@@ -8,6 +8,8 @@ export SNRESISTANCE_DEVMODE=False
 export POSTGRES_PORT=5432
 export POSTGRES_DB="SNResistance"
 export POSTGRES_USERNAME="SNResistance"
+export POSTGRES_PASSWORD=`python3 -c "from secrets import token_hex; print(token_hex(64))"`
 
 # Redis Settings
 export REDIS_PORT=6379
+export REDIS_PASSWORD=`python3 -c "from secrets import token_hex; print(token_hex(64))"`
