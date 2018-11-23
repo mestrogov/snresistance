@@ -15,7 +15,6 @@ import time
 if __name__ == "__main__":
     try:
         ignoredModulesLoggers = []
-        # noinspection PyUnresolvedReferences
         for logger in logging.Logger.manager.loggerDict:
             ignoredModulesLoggers.extend([logger])
             logging.getLogger(logger).setLevel(logging.WARNING)

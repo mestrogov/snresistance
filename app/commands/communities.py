@@ -9,7 +9,7 @@ import asyncio
 
 
 @run_async
-def addcommunity(bot, message):
+def add_community(bot, message):
     try:
         message = message.message
         loop = asyncio.new_event_loop()
@@ -59,7 +59,7 @@ def addcommunity(bot, message):
 
 
 @run_async
-def removecommunity(bot, message):
+def remove_community(bot, message):
     try:
         message = message.message
         loop = asyncio.new_event_loop()

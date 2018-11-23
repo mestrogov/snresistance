@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from app import logging
-from app.utils.post_statistics import statistics as postStatistics
+from app.utils.post_statistics import statistics as post_statistics
 from app.remote.postgresql import Psql as psql
 from app.remote.redis import Redis as redis
 from telegram.ext.dispatcher import run_async
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from app.commands.start import start_menu as startMenu
 from datetime import datetime
 from time import time
 import logging
@@ -43,7 +42,7 @@ def refresh_stats(bot, call, expired=None):
                                  "access_token": access_token,
                                  "v": "5.80"
                              }).json()['response']['items'][0]
-        update_status = postStatistics(bot, posts=post, chat_id=call.message.chat.id,
+        update_status = post_statistics(bot, posts=post, chat_id=call.message.chat.id,
                                        message_id=call.message.message_id, mtype="update")
         if update_status == "OK" or update_status == "IS NOT MODIFIED":
             bot.answer_callback_query(callback_query_id=call.id,
@@ -71,34 +70,7 @@ def callback(bot, call):
         asyncio.set_event_loop(loop)
 
         if call.message:
-            if call.data == "exit_to_start_menu":
-                bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
-                # noinspection PyUnresolvedReferences
-                startMenu(bot, call)
-            if call.data == "start_vk_import":
-                markup = [
-                    [InlineKeyboardButton("Импортировать", url="google.com")],
-                    [InlineKeyboardButton("❌  Отменить", callback_data="exit_to_start_menu")]
-                ]
-                markup = InlineKeyboardMarkup(markup)
-
-                bot.edit_message_text(
-                    "Обратите внимание, что при импортировании сообществ будет автоматически "
-                    "запрошен доступ к стене, это необходимо для получения самих публикаций. "
-                    "Также это необходимо, чтобы увеличить максимальное количество групп до 30 "
-                    "и понизить время обновления до 15 минут. Если Вы хотите импортировать больше "
-                    "30 сообществ, то необходимо приобрести UNIQUE (подробнее о ней в FAQ).",
-                    parse_mode="Markdown", reply_markup=markup,
-                    chat_id=call.from_user.id, message_id=call.message.message_id
-                )
-            elif call.data == "start_menu_direct_url":
-                bot.edit_message_text(
-                    "Отлично! Теперь отправьте мне ссылку на сообщество с помощью команды /add.",
-                    parse_mode="Markdown", chat_id=call.from_user.id, message_id=call.message.message_id
-                )
-            elif call.data == "start_menu_next":
-                pass
-            elif call.data.startswith("channel_counters"):
+            if call.data.startswith("channel_counters"):
                 counter = call.data.split("|", 2)
 
                 if counter[1] == "time":

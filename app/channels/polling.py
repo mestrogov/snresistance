@@ -80,7 +80,6 @@ def polling(bot, job):
                 other = None
 
                 try:
-                    # noinspection PyStatementEffect
                     posts['copy_history']
                     is_repost = True
 
@@ -107,7 +106,6 @@ def polling(bot, job):
 
                 try:
                     try:
-                        # noinspection PyStatementEffect
                         posts['attachments']
 
                         attachments = True
@@ -194,7 +192,6 @@ def polling(bot, job):
                             repost_profile = posts_original['profiles'][i]
                 try:
                     if is_repost:
-                        # noinspection PyStatementEffect
                         repost_profile['name']
                 except KeyError:
                     repost_profile['name'] = str(repost_profile['first_name']) + " " + str(repost_profile['last_name'])

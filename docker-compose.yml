@@ -1,0 +1,47 @@
+version: "3.6"
+
+services:
+  app:
+    build: .
+    container_name: SNResistance
+    restart: unless-stopped
+    environment:
+      - SNRESISTANCE_TOKEN=575841584:AAGzsHDs7ww-q3KvtC2QngJnRrBmgBj7blM
+      - SNRESISTANCE_DEVMODE=False
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      # Don't forget to change values in containers' settings
+      - POSTGRES_DB=SNResistance
+      - POSTGRES_USERNAME=SNResistance
+      - POSTGRES_PORT=5432
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:11.1-alpine
+    container_name: SNResistancePostgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=SNResistance
+      - POSTGRES_USER=SNResistance
+    ports:
+      - "5432:5432"
+    volumes:
+      - psql-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:5.0.1-alpine
+    container_name: SNResistanceRedis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+networks:
+  default:
+    name: SNResistance
+
+volumes:
+  psql-data:
+    name: SNResistancePSQL

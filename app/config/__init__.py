@@ -6,20 +6,20 @@ import logging
 
 # dae167abbd450adabe7fe1c1c79c13f6a05c6b92f033b040881a0bcc2989c438ae4a7b3aa531b1b6420e2 ; 168313418
 try:
-    botToken = getenv("SNRESISTANCE_TOKEN")
-    developerMode = getenv("SNRESISTANCE_DEVMODE")
+    botToken = getenv("SNRESISTANCE_TOKEN", "575841584:AAGzsHDs7ww-q3KvtC2QngJnRrBmgBj7blM")
+    developerMode = getenv("SNRESISTANCE_DEVMODE", True)
 
     # Database Credentials
-    databaseHost = getenv("POSTGRES_HOST")
-    databasePort = getenv("POSTGRES_PORT")
-    databaseName = getenv("POSTGRES_DB")
-    databaseUsername = getenv("POSTGRES_USERNAME")
+    databaseHost = getenv("POSTGRES_HOST", "127.0.0.1")
+    databasePort = getenv("POSTGRES_PORT", 5432)
+    databaseName = getenv("POSTGRES_DB", "SNResistance")
+    databaseUsername = getenv("POSTGRES_USERNAME", "SNResistance")
 
     # Redis Credentials
-    redisHost = getenv("REDIS_HOST")
-    redisPort = getenv("REDIS_PORT")
+    redisHost = getenv("REDIS_HOST", "127.0.0.1")
+    redisPort = getenv("REDIS_PORT", 6379)
 except (KeyError, IndexError):
-    logging.critical("Some environment variables aren't set, execute .environment file before running SNResistance.")
+    logging.critical("Exception has been occurred while trying to get environment variables.", exc_info=True)
     exit(1)
 
 startMessage = \

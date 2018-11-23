@@ -3,47 +3,17 @@
 from app import logging
 from app import config as config
 from app.remote.postgresql import Psql as psql
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext.dispatcher import run_async
 from shutil import copyfileobj
 from os import remove
 from secrets import token_hex
-from calendar import timegm
-from datetime import datetime
 import logging
 import asyncio
 import requests
 
 
 @run_async
-def addchannel(bot, message):
-    try:
-        message = message.message
-        markup = [[
-            InlineKeyboardButton(text='Настроить канал', switch_inline_query="Initialize Channel: #{0}".format(
-                str(message.text).replace("/addchannel ", "")
-            ))
-        ]]
-        markup = InlineKeyboardMarkup(markup)
-        bot.send_message(message.from_user.id,
-                         "Благодарю за возникший интерес к созданию собственного канала для репостинга публикаций из "
-                         "данного сообщества. Нажмите на кнопку ниже, чтобы продолжить.",
-                         parse_mode="Markdown", reply_markup=markup)
-    except Exception as e:
-        try:
-            bot.send_message(message.from_user.id,
-                             "❗ *Извините, что-то пошло не так, но в скором времени все будет исправлено. "
-                             "Попробуйте выполнить то же самое действие через некоторое время (10-15 минут).*",
-                             parse_mode="Markdown")
-        except:
-            pass
-
-        logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
-        return e
-
-
-@run_async
-def initializechannel(bot, message):
+def initialize_channel(bot, message):
     try:
         message = message.channel_post
         loop = asyncio.new_event_loop()

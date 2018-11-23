@@ -14,7 +14,6 @@ import asyncio
 
 
 # @run_async
-# noinspection PyTypeChecker,PyStatementEffect
 def statistics(bot, posts, chat_id, mtype="initiate", message_id=None):
     try:
         loop = asyncio.new_event_loop()
