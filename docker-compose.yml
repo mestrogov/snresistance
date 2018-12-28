@@ -1,38 +1,39 @@
-version: "3.6"
+version: "3"
 
 services:
   app:
     build: .
     container_name: SNResistance
-    restart: unless-stopped
+    restart: unless-stoppeds
     environment:
-      - SNRESISTANCE_TOKEN=575841584:AAGzsHDs7ww-q3KvtC2QngJnRrBmgBj7blM
-      - SNRESISTANCE_DEVMODE=False
-      - POSTGRES_HOST=postgres
-      - REDIS_HOST=redis
-      # Don't forget to change values in containers' settings
-      - POSTGRES_DB=SNResistance
-      - POSTGRES_USERNAME=SNResistance
-      - POSTGRES_PORT=5432
-      - REDIS_PORT=6379
+      # You should change SNRESISTANCE_TOKEN in .env file (you can also set
+      # environment variable yourself using command `export SNRESISTANCE_TOKEN=CHANGE IT TO TOKEN`)
+      - SNRESISTANCE_TOKEN=${SNRESISTANCE_TOKEN}
+      - SNRESISTANCE_DEVMODE=${SNResistance_DEVMODE}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
     depends_on:
       - postgres
       - redis
 
   postgres:
     image: postgres:11.1-alpine
-    container_name: SNResistancePostgres
+    container_name: SNResistancePostgreSQL
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=SNResistance
-      - POSTGRES_USER=SNResistance
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
     ports:
       - "5432:5432"
     volumes:
-      - psql-data:/var/lib/postgresql/data
+      - postgresql-data:/var/lib/postgresql/data
 
   redis:
-    image: redis:5.0.1-alpine
+    image: redis:5.0.3-alpine
     container_name: SNResistanceRedis
     restart: unless-stopped
     ports:
@@ -43,5 +44,5 @@ networks:
     name: SNResistance
 
 volumes:
-  psql-data:
-    name: SNResistancePSQL
+  postgresql-data:
+    name: postgresql-data

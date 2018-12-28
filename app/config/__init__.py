@@ -4,9 +4,8 @@ from os import getenv
 from sys import exit
 import logging
 
-# dae167abbd450adabe7fe1c1c79c13f6a05c6b92f033b040881a0bcc2989c438ae4a7b3aa531b1b6420e2 ; 168313418
 try:
-    botToken = getenv("SNRESISTANCE_TOKEN", "575841584:AAGzsHDs7ww-q3KvtC2QngJnRrBmgBj7blM")
+    botToken = getenv("SNRESISTANCE_TOKEN")
     developerMode = getenv("SNRESISTANCE_DEVMODE", True)
 
     # Database Credentials
