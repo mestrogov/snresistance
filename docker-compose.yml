@@ -6,8 +6,8 @@ services:
     container_name: SNResistance
     restart: unless-stoppeds
     environment:
-      # You should change SNRESISTANCE_TOKEN in .env file (you can also set
-      # environment variable yourself using command `export SNRESISTANCE_TOKEN=CHANGE IT TO TOKEN`)
+      # Вам следует редактировать SNRESISTANCE_TOKEN в .env файле (можно также установить
+      # ее как environment variable на хосте)
       - SNRESISTANCE_TOKEN=${SNRESISTANCE_TOKEN}
       - SNRESISTANCE_DEVMODE=${SNResistance_DEVMODE}
       - POSTGRES_DB=${POSTGRES_DB}
