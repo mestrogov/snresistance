@@ -24,13 +24,7 @@ def start(bot, message):
         bot.send_message(message.from_user.id, config.startMessage, parse_mode="Markdown")
         loop.run_until_complete(
             redis.execute("SET", "status:{0}".format(message.from_user.id),
-                          '{"status": "waiting", "method": "find_communities"}', "EX", 60))
-
-        loop.run_until_complete(psql.execute(
-            'INSERT INTO users("id") VALUES($1) RETURNING "id", "admin", "paid_account", "communities", '
-            '"access_token";',
-            message.from_user.id
-        ))
+                          '{"status": "waiting", "method": "find_communities"}', "EX", 180))
     except Exception as e:
         try:
             bot.send_message(message.from_user.id,

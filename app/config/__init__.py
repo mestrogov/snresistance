@@ -4,17 +4,18 @@ from os import getenv
 from sys import exit
 import logging
 
+
 try:
     botToken = getenv("SNRESISTANCE_TOKEN")
-    developerMode = getenv("SNRESISTANCE_DEVMODE", True)
+    developerMode = getenv("SNRESISTANCE_DEVMODE", False)
 
-    # Database Credentials
+    # Данные от PostgreSQL (База Данных)
     databaseHost = getenv("POSTGRES_HOST", "127.0.0.1")
     databasePort = getenv("POSTGRES_PORT", 5432)
     databaseName = getenv("POSTGRES_DB", "SNResistance")
     databaseUsername = getenv("POSTGRES_USERNAME", "SNResistance")
 
-    # Redis Credentials
+    # Данные от Redis (Кэш)
     redisHost = getenv("REDIS_HOST", "127.0.0.1")
     redisPort = getenv("REDIS_PORT", 6379)
 except (KeyError, IndexError):

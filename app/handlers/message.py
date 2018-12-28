@@ -4,6 +4,7 @@
 from app import logging
 from app.remote.redis import Redis as redis
 from telegram.ext.dispatcher import run_async
+from app.commands.communities import find_community as find_community
 import logging
 import asyncio
 import json
@@ -21,8 +22,7 @@ def message(bot, message):
             if status:
                 status = json.loads(str(status))
                 if status['method'] == "find_communities":
-                    # TODO: Add here find_communities method to find community in DB if it exists
-                    bot.send_message(message.from_user.id, "Все огонь!")
+                    find_community(bot, message)
                     loop.run_until_complete(redis.execute("DEL", "status:{0}".format(message.from_user.id)))
     except Exception as e:
         logging.error("Exception has been occurred while trying to execute the method.", exc_info=True)
